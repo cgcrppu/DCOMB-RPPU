@@ -1,0 +1,13 @@
+/* Importa todos os estilos organizados */
+@import url('./base/_base.css');
+@import url('./layout/_card.css');
+@import url('./components/_button.css');
+@import url('./components/_forms.css');
+@import url('./components/_grid.css');
+@import url('./components/_pre.css');
+@import url('./components/_tooltip.css');
+@import url('./components/_links.css');
+@import url('./components/_legenda.css');
+@import url('./tables/_tables.css');
+@import url('./themes/_light-theme.css');
+@import url('./components/_images.css');

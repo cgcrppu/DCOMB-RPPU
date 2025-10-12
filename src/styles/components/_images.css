@@ -1,0 +1,6 @@
+.imagem-centralizada {
+  display: block;           /* Faz a imagem ocupar uma linha sozinha */
+  margin: 20px auto 0 auto; /* Centraliza horizontalmente, com margem acima opcional */
+  max-width: 100%;          /* Responsiva: não ultrapassa o container */
+  height: auto;             /* Mantém proporção */
+}

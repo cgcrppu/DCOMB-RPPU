@@ -1,0 +1,10 @@
+/* Estilo do componente de cartão (cabeçalho)*/
+.card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(20, 30, 40, 0.06);
+  max-width: 1100px;
+  margin: 20px auto;
+}
+

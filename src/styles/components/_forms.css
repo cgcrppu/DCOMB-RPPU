@@ -1,0 +1,14 @@
+/* Inputs, selects e textareas */
+input, select, textarea {
+  width: 100%;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #d6d599;
+  margin-top: 6px;
+}
+
+/* Textarea: altura padrão maior e redimensionamento vertical */
+textarea {
+  height: 200px;
+  resize: vertical;
+}

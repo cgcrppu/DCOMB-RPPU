@@ -1,0 +1,8 @@
+/* 
+Estilo para links especiais (hyperlink) 
+*/
+a.hyperlink-leg {
+  color: #0b5fff;
+  font-weight: bold;
+  text-decoration: underline;
+}
