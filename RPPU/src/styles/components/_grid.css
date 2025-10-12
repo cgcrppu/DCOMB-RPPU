@@ -1,8 +1,0 @@
-/* 
-Layout em grade: colunas automáticas com largura mínima de 220px e espaçamento entre os itens 
-*/
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-}
