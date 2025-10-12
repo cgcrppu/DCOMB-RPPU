@@ -1,0 +1,11 @@
+/* 
+Blocos do texto de resultado: fundo escuro, texto claro, espaçamento interno, cantos arredondados e rolagem para overflow 
+*/
+pre {
+  background: #0f1724;
+  color: #e6eef8;
+  padding: 12px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  overflow: auto;
+}
