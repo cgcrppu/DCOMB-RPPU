@@ -1,0 +1,8 @@
+/* Título de legenda */
+.leg-title {
+  font-size: 1.15em;
+  font-weight: bold;
+  margin-top: 24px;
+  margin-bottom: 2px;
+  display: block;
+}

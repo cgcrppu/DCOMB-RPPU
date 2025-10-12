@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Estilos compilados/agrupados (pasta: src/styles) -->
+  <link rel="stylesheet" href="src/styles/main.css">
+  <title>DCOMB-RPPU Final</title>
+
+  <!-- jsPDF & SheetJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- Página Inicial -->
+<div class="card" id="mainPage">
+  <h1>DCOMB-RPPU</h1>
+  <p class="center">Escolha uma opção:</p>
+  <div class="center">
+    <button id="btnCalculos">Cálculos</button>
+    <button id="btnTextos">Textos</button>
+    <button id="btnLegislacao">Legislação</button>
+  </div>
+  <div>
+    <img src="src/images/RPPU.jpeg" alt="" class="imagem-centralizada">
+  </div>
+</div>
+
+<!-- Página Seleção do Tipo de Cálculo -->
+<div class="card hidden" id="tipoCalculoPage">
+  <h1>Escolha o tipo de cálculo</h1>
+  <div class="center">
+    <button id="btnTipoAposentadoria">Aposentadoria</button>
+    <button id="btnTipoPensao">Pensão</button>
+    <button id="btnAcumuloBeneficios">Acúmulo de Benefícios</button>
+    <button id="btnReposicaoErario">Reposição ao Erário</button>
+    <button class="secondary" id="btnBackTipoCalculo">Voltar</button>
+  </div>
+</div>
+
+<!-- Página de Opções de Aposentadoria -->
+<div class="card hidden" id="aposentadoriaOpcoesPage">
+  <h1>Aposentadoria</h1>
+  <div class="center">
+    <button id="btnAcertosFinanceiros">Acertos financeiros</button>
+    <button id="btnCalculoFerias">Cálculo de Férias</button>
+    <button class="secondary" id="btnBackAposentadoriaOpcoes">Voltar</button>
+  </div>
+</div>
+
+<!-- Página de Acertos financeiros -->
+<div class="card hidden" id="aposentadoriaArea">
+  <h2>Acertos Financeiros - Aposentadoria</h2>
+  <div class="grid">
+    <div>
+      <label>Nome do Servidor
+        <span class="tooltip">?
+          <span class="tooltiptext">Nome completo do Servidor</span>
+        </span>
+      </label>
+      <input id="nomeServidorApos" autocomplete="off">
+    </div>
+    <div>
+      <label>Matrícula SIAPE
+        <span class="tooltip">?
+          <span class="tooltiptext">Matrícula do Servidor</span>
+        </span>
+      </label>
+      <input id="matriculaSiapeApos" autocomplete="off">
+    </div>
+    <div>
+      <label>Fundamentação
+        <span class="tooltip">?
+          <span class="tooltiptext">Fundamentação escolhida pelo servidor</span>
+        </span>
+      </label>
+      <input id="fundamentacaoApos" autocomplete="off">
+    </div>
+    <div>
+      <label>Data de Admissão
+        <span class="tooltip">?
+          <span class="tooltiptext">Data que o servidor entrou no Órgão</span>
+        </span>
+      </label>
+      <input id="dataAdmissaoApos" type="date">
+    </div>
+    <div>
+      <label>Data de Aposentadoria
+        <span class="tooltip">?
+          <span class="tooltiptext">Data que o servidor se aposentou</span>
+        </span>
+      </label>
+      <input id="dataAposentadoriaApos" type="date">
+    </div>
+    <div>
+      <label>Cargo
+        <span class="tooltip">?
+          <span class="tooltiptext">Cargo em que o servidor se aposentou</span>
+        </span>
+      </label>
+      <select id="cargoApos">
+        <option value="Analista do Seguro Social">Analista do Seguro Social</option>
+        <option value="Técnico do Seguro Social">Técnico do Seguro Social</option>
+      </select>
+    </div>
+    <div>
+      <label>Classe
+        <span class="tooltip">?
+          <span class="tooltiptext">Classe em que o servidor se aposentou</span>
+        </span>
+      </label>
+      <select id="classeApos">
+        <option value="ESPECIAL">ESPECIAL</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+      </select>
+    </div>
+    <div>
+      <label>Padrão
+        <span class="tooltip">?
+          <span class="tooltiptext">Padrão em que o servidor se aposentou</span>
+        </span>
+      </label>
+      <select id="padraoApos">
+        <option value="V">V</option>
+        <option value="IV">IV</option>
+        <option value="III">III</option>
+        <option value="II">II</option>
+        <option value="I">I</option>
+      </select>
+    </div>
+    <div>
+      <label>Jornada
+        <span class="tooltip">?
+          <span class="tooltiptext">Jornada em que o servidor se aposentou</span>
+        </span>
+      </label>
+      <select id="jornadaApos">
+        <option value="40h">40h</option>
+        <option value="30h">30h</option>
+      </select>
+    </div>
+    <div>
+      <label>GDASS - Aposentado</label>
+      <select id="gdassApos">
+        <option value="SIM">SIM</option>
+        <option value="NÃO">NÃO</option>
+      </select>
+    </div>
+    <div>
+      <label>Pontos GDASS (%)</label>
+  <input id="pontosGdassApos" type="number" min="0" max="100" step="0.01">
+    </div>
+  </div>
+  <h3 style="margin-top:32px;">Rubricas / Acertos Financeiros</h3>
+  <div style="overflow-x:auto;">
+    <table id="tabelaRubricas" style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th>Rubrica (código)</th>
+          <th>Denominação</th>
+          <th>Valor padrão</th>
+          <th>Acerto Financeiro?</th>
+          <th>Aplica em</th>
+          <th>Incide PSS?</th>
+          <th>Ativo (R$)</th>
+          <th>Inativo (R$)</th>
+          <th>Ajuste (R$)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Linhas dinâmicas -->
+      </tbody>
+    </table>
+  </div>
+  <div class="center" style="margin:10px 0 16px 0;">
+    <button id="adicionarRubrica">Adicionar Rubrica</button>
+  </div>
+  <div class="center">
+    <button class="secondary" id="btnBackAposentadoriaForm">Voltar</button>
+  </div>
+  <h3>Resultado</h3>
+  <pre id="resultado">Preencha os dados e faça o download.</pre>
+  <div class="center" style="margin-top:16px;">
+    <button id="btnAposPDF">Baixar PDF</button>
+    <button id="btnAposXLS">Baixar XLS</button>
+  </div>
+</div>
+
+<!-- Página de Cálculo de Férias -->
+<div class="card hidden" id="calculoFeriasArea">
+  <h2>Cálculo de Férias</h2>
+  <div class="center" style="color:#0b5fff;font-weight:bold;margin-bottom:8px;">
+    Área para cálculo de férias (em construção).
+  </div>
+  <div class="grid">
+    <div>
+      <label>Período de Férias</label>
+      <input id="feriasPeriodo" placeholder="Ex: 2025">
+    </div>
+    <div>
+      <label>Valor das Férias (R$)</label>
+  <input id="feriasValor" type="text" class="monetary" placeholder="0,00">
+    </div>
+    <div>
+      <label>Valor do Abono (R$)</label>
+  <input id="feriasAbono" type="text" class="monetary" placeholder="0,00">
+    </div>
+    <div>
+      <label>Desconto IR (R$)</label>
+  <input id="feriasDescontoIR" type="text" class="monetary" placeholder="0,00">
+    </div>
+    <div>
+      <label>Desconto PSS (R$)</label>
+  <input id="feriasDescontoPSS" type="text" class="monetary" placeholder="0,00">
+    </div>
+  </div>
+  <div class="center" style="margin:10px 0 16px 0;">
+    <button id="calcularFerias">Calcular Férias</button>
+  </div>
+  <h3>Resultado Férias</h3>
+  <pre id="resultadoFerias"></pre>
+  <div class="center" style="margin-top:16px;">
+    <button id="btnFeriasPDF">Baixar PDF</button>
+    <button id="btnFeriasXLS">Baixar XLS</button>
+  </div>
+  <div class="center">
+    <button class="secondary" id="btnBackCalculoFerias">Voltar</button>
+  </div>
+</div>
+
+<!-- Página de Acúmulo de Benefícios -->
+<div class="card hidden" id="acumuloBeneficiosArea">
+  <h2>Acúmulo de Benefícios</h2>
+  <div class="grid">
+    <div>
+      <label>Nome
+        <span class="tooltip">?
+          <span class="tooltiptext">Nome completo do interessado</span>
+        </span>
+      </label>
+      <input id="acumuloNome" autocomplete="off">
+    </div>
+    <div>
+      <label>Matrícula
+        <span class="tooltip">?
+          <span class="tooltiptext">Matrícula do interessado</span>
+        </span>
+      </label>
+      <input id="acumuloMatricula" autocomplete="off">
+    </div>
+    <div>
+      <label>CPF
+        <span class="tooltip">?
+          <span class="tooltiptext">CPF do interessado</span>
+        </span>
+      </label>
+      <input id="acumuloCPF" autocomplete="off">
+    </div>
+    <div>
+      <label>Processo SEI
+        <span class="tooltip">?
+          <span class="tooltiptext">Processo referente ao Acúmulo de Benefício</span>
+        </span>
+      </label>
+      <input id="acumuloProcessoSEI" autocomplete="off">
+    </div>
+  </div>
+  <h3 style="margin-top:32px;">Cálculo</h3>
+  <div class="grid">
+    <div>
+      <label>Salário no ano em Referência
+        <span class="tooltip">?
+          <span class="tooltiptext">Salário Bruto no qual o interessado está recebendo na competência de Cálculo (retirando verbas indenizatórias)</span>
+        </span>
+      </label>
+  <input id="acumuloSalarioRef" type="text" class="monetary" placeholder="0,00">
+    </div>
+    <div>
+      <label>Período do Cálculo (mês e ano)
+        <span class="tooltip">?
+          <span class="tooltiptext">Informar mês e ano</span>
+        </span>
+      </label>
+      <select id="acumuloMes">
+  <option value="1">Janeiro</option>
+  <option value="2">Fevereiro</option>
+  <option value="3">Março</option>
+  <option value="4">Abril</option>
+  <option value="5">Maio</option>
+  <option value="6">Junho</option>
+  <option value="7">Julho</option>
+  <option value="8">Agosto</option>
+  <option value="9">Setembro</option>
+  <option value="10">Outubro</option>
+  <option value="11">Novembro</option>
+  <option value="12">Dezembro</option>
+</select>
+<select id="acumuloAno">
+  <option value="">Ano</option>
+  <option value="2019">2019</option>
+  <option value="2020">2020</option>
+  <option value="2021">2021</option>
+  <option value="2022">2022</option>
+  <option value="2023">2023</option>
+  <option value="2024">2024</option>
+  <option value="2025">2025</option>
+</select>
+    </div>
+    <div>
+      <label>Valor do Salário Mínimo no ano de Referência
+        <span class="tooltip">?
+          <span class="tooltiptext">Calculado automaticamente com base no mês e ano</span>
+        </span>
+      </label>
+  <input id="acumuloSalarioMin" type="text" class="monetary" readonly>
+    </div>
+  </div>
+  <div class="center" style="margin:14px 0;">
+    <button id="btnCalcularAcumuloRubrica">Calcular valor da Rubrica do redutor</button>
+  </div>
+  <h3>Memória de cálculo / Resultado</h3>
+  <pre id="acumuloMemoria">Preencha os dados e clique em calcular.</pre>
+  <div class="center" style="margin-top:16px;">
+    <button id="btnAcumuloPDF">Baixar PDF</button>
+    <button id="btnAcumuloXLS">Baixar XLS</button>
+  </div>
+  <div class="center">
+    <button class="secondary" id="btnBackAcumuloBeneficios">Voltar</button>
+  </div>
+</div>
+
+<!-- Página de Pensão -->
+<div class="card hidden" id="pensaoArea">
+  <h2>Pensão</h2>
+  <div class="grid">
+    <div>
+      <label>Nome do instituidor <span class="tooltip">?<span class="tooltiptext">Nome do instituidor da pensão</span></span></label>
+      <input id="pensionistaNome" placeholder="Nome do instituidor">
+    </div>
+    <div>
+      <label>Valor base de cálculo (R$) <span class="tooltip">?<span class="tooltiptext">Última remuneração do servidor</span></span></label>
+  <input id="basePensaoCalc" type="text" class="monetary" value="0,00">
+    </div>
+    <div>
+      <label>Percentual total da pensão (%) <span class="tooltip">?<span class="tooltiptext">50% + 10% por dependente, até 100%</span></span></label>
+      <input id="percentBasePensao" readonly value="50">
+    </div>
+  </div>
+  <h3>Dependentes</h3>
+  <div id="dependentesContainer"></div>
+  <div class="center" style="margin-top:10px;">
+    <button id="addDependente">Adicionar Dependente</button>
+  </div>
+  <div class="center" style="margin-top:20px;">
+    <button id="calcularPensao">Calcular Pensão</button>
+    <button class="secondary" id="btnBackPensao">Voltar</button>
+  </div>
+  <h3>Resumo</h3>
+  <pre id="resumoPensao"></pre>
+  <div class="center" style="margin-top:16px;">
+    <button id="btnPensaoPDF">Baixar PDF</button>
+    <button id="btnPensaoXLS">Baixar XLS</button>
+  </div>
+</div>
+
+<!-- Textos -->
+<div class="card hidden" id="textosPage">
+  <h1>Textos</h1>
+  <div class="center">
+    <button id="btnTextoApos">Aposentadoria</button>
+    <button id="btnTextoPensao">Pensão</button>
+    <button class="secondary" id="btnBackTextos">Voltar</button>
+  </div>
+  <!-- Aposentadoria -->
+  <div id="textoAposArea" class="hidden">
+    <h2>Modelos de Aposentadoria</h2>
+    <div class="center">
+      <button id="btnPortaria">Portaria de Concessão</button>
+      <button id="btnCarta">Carta de Concessão</button>
+    </div>
+    <div id="portariaArea" class="hidden">
+      <h3>Portaria de Concessão</h3>
+      <div class="grid">
+        <div><label>Nome do servidor aposentado</label><input id="nomeServidor"></div>
+        <div><label>Matrícula</label><input id="matricula"></div>
+        <div><label>Número do processo SEI</label><input id="processoSEI"></div>
+        <div><label>Número do PAT</label><input id="numPAT"></div>
+        <div><label>Tipo de aposentadoria</label><input id="tipoApos"></div>
+      </div>
+      <div class="center"><button id="gerarPortaria">Gerar Portaria</button></div>
+      <textarea id="resultadoPortaria" readonly></textarea>
+    </div>
+    <div id="cartaArea" class="hidden">
+      <h3>Carta de Concessão</h3>
+      <textarea id="textoCarta" placeholder="Digite o modelo de carta aqui..."></textarea>
+    </div>
+  </div>
+  <!-- Pensão -->
+  <div id="textoPensaoArea" class="hidden">
+    <h2>Modelos de Pensão</h2>
+    <div class="center">
+      <button id="btnPortariaPensao">Portaria de Concessão</button>
+      <button id="btnCartaPensao">Carta de Concessão</button>
+    </div>
+    <div id="portariaPensaoArea" class="hidden">
+      <h3>Portaria de Concessão - Pensão</h3>
+      <div class="grid">
+        <div><label>Nome do pensionista</label><input id="nomePensionista"></div>
+        <div><label>Matrícula do servidor falecido</label><input id="matriculaFalecido"></div>
+        <div><label>Número do processo SEI</label><input id="processoSEIPensao"></div>
+        <div><label>Número do PAT</label><input id="numPATPensao"></div>
+        <div><label>Percentual da pensão (%)</label><input id="percentPensao"></div>
+      </div>
+      <div class="center"><button id="gerarPortariaPensao">Gerar Portaria</button></div>
+      <textarea id="resultadoPortariaPensao" readonly></textarea>
+    </div>
+    <div id="cartaPensaoArea" class="hidden">
+      <h3>Carta de Concessão - Pensão</h3>
+      <textarea id="textoCartaPensao" placeholder="Digite o modelo de carta aqui..."></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- Legislação -->
+<div class="card hidden" id="legislacaoPage">
+  <h1>Legislação</h1>
+  <p class="center">Veja abaixo os principais normativos:</p>
+  <div style="margin-top:18px;">
+    <span class="leg-title">Portaria DGP n° 70 - Ciência Presumida</span>
+    <div class="center" style="margin-bottom:18px;">
+      <a class="hyperlink-leg" target="_blank"
+        href="https://inssgov.sharepoint.com/:b:/s/Reposio/EUaNMO_T7SRAgPDqbm9pTmIB-WJ-Hy3ULr5x0D1XeUYH6w?e=CJTh5Z">
+        Portaria 70 - Clique para acessar o documento
+      </a>
+    </div>
+    <span class="leg-title">Lei 8.112/90 - Regime Jurídico Único</span>
+    <div class="center">
+      <a class="hyperlink-leg" target="_blank"
+        href="https://www.planalto.gov.br/ccivil_03/leis/l8112cons.htm">
+        Lei 8.112/90 - Clique para acessar o documento
+      </a>
+    </div>
+  </div>
+  <div class="center" style="margin-top:28px;">
+    <button class="secondary" id="btnBackLeg">Voltar</button>
+  </div>
+</div>
+
+<!-- Reposição ao Erário - NOVO -->
+<div class="card hidden" id="reposicaoErarioArea">
+  <h2>Reposição ao Erário</h2>
+  <div class="center">
+    <button id="btnPosObito">Pós-óbito</button>
+    <button id="btnSaudeSuplementar">Saúde Suplementar</button>
+    <button id="btnAcumuloBeneficiosErario">Acúmulo de Benefícios</button>
+    <button class="secondary" id="btnBackReposicaoErario">Voltar</button>
+  </div>
+  <!-- Pós-óbito -->
+  <div id="posObitoArea" class="hidden" style="margin-top:24px;">
+    <h3>Pós-óbito</h3>
+    <div class="grid">
+      <div>
+        <label>Nome</label>
+        <input id="posObitoNome" autocomplete="off">
+      </div>
+      <div>
+        <label>Matrícula</label>
+        <input id="posObitoMatricula" autocomplete="off">
+      </div>
+      <div>
+        <label>CPF</label>
+        <input id="posObitoCPF" autocomplete="off">
+      </div>
+      <div>
+        <label>Processo SEI</label>
+        <input id="posObitoProcessoSEI" autocomplete="off">
+      </div>
+    </div>
+    <h4 style="margin-top:20px;">Cálculo</h4>
+    <div class="grid">
+      <div>
+        <label>Salário na competência do óbito (R$)</label>
+  <input id="posObitoSalario" type="text" class="monetary" placeholder="0,00">
+      </div>
+      <div>
+        <label>Data do óbito</label>
+        <input id="posObitoData" type="date">
+      </div>
+    </div>
+      <div class="grid" style="margin-top:10px;">
+        <div>
+          <label>Houve pagamento após a competência do óbito?
+            <span class="tooltip">?
+              <span class="tooltiptext">Informar se houve pagamentos em meses posteriores ao óbito</span>
+            </span>
+          </label>
+            <select id="posObitoPagamentoPosterior">
+              <option value="NÃO">Não</option>
+              <option value="SIM">Sim</option>
+            </select>
+        </div>
+        <div id="posObitoMesesPosterioresDiv" class="hidden">
+          <label>Quantos meses a mais?</label>
+          <input id="posObitoMesesPosteriores" type="number" min="0" step="1" value="0">
+        </div>
+        <div id="posObitoGratNatalDiv" class="hidden">
+          <label>Valor relativo ao adiantamento da Gratificação Natalina (R$)</label>
+          <input id="posObitoGratNatal" type="text" class="monetary" value="0,00">
+        </div>
+      </div>
+      <div class="center" style="margin:16px 0;">
+        <button id="btnCalcularPosObito">Calcular Reposição</button>
+      </div>
+      <h4>Resultado</h4>
+      <pre id="resultadoPosObito">Preencha os dados e clique em calcular.</pre>
+    </div>
+    <!-- Saúde Suplementar -->
+    <div id="saudeSuplementarArea" class="hidden" style="margin-top:24px;">
+      <h3>Saúde Suplementar</h3>
+      <div class="center" style="color:#0b5fff;font-weight:bold;">Área de cálculo está em construção.</div>
+    </div>
+    <!-- Acúmulo de Benefícios -->
+    <div id="acumuloErarioArea" class="hidden" style="margin-top:24px;">
+      <h3>Acúmulo de Benefícios</h3>
+      <div class="center" style="color:#0b5fff;font-weight:bold;">Área de cálculo está em construção.</div>
+    </div>
+  </div>
+  </div>
+  <!-- Saúde Suplementar -->
+  <div id="saudeSuplementarArea" class="hidden" style="margin-top:24px;">
+    <h3>Saúde Suplementar</h3>
+    <div class="center" style="color:#0b5fff;font-weight:bold;">Área de cálculo está em construção.</div>
+  </div>
+  <!-- Acúmulo de Benefícios -->
+  <div id="acumuloErarioArea" class="hidden" style="margin-top:24px;">
+    <h3>Acúmulo de Benefícios</h3>
+    <div class="center" style="color:#0b5fff;font-weight:bold;">Área de cálculo está em construção.</div>
+  </div>
+</div>
+
+<script src="javascript/javascript.js"></script>
+</body>
+</html>
