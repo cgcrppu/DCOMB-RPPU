@@ -3,19 +3,194 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Estilos compilados/agrupados (pasta: src/styles) -->
-  <link rel="stylesheet" href="src/styles/base/_base.css">
-  <link rel="stylesheet" href="src/styles/components/_button.css">
-  <link rel="stylesheet" href="src/styles/components/_forms.css">
-  <link rel="stylesheet" href="src/styles/components/_grid.css">
-  <link rel="stylesheet" href="src/styles/components/_images.css">
-  <link rel="stylesheet" href="src/styles/components/_legenda.css">
-  <link rel="stylesheet" href="src/styles/components/_links.css">
-  <link rel="stylesheet" href="src/styles/components/_pre.css">
-  <link rel="stylesheet" href="src/styles/components/_tooltip.css">
-  <link rel="stylesheet" href="src/styles/layout/_card.css">
-  <link rel="stylesheet" href="src/styles/tables/_tables.css">
-  <link rel="stylesheet" href="src/styles/themes/_light-theme.css">
+
+  <!-- Estilos incorporados diretamente (concatenação de src/styles) -->
+  <style>
+/* from: src/styles/base/_base.css */
+/* 
+Define a fonte e o fundo básico para toda a página 
+*/
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, 'Helvetica Neue', Arial;
+  margin: 30px;
+  background: #0a7cee;
+}
+
+/* Títulos: remove margem superior e centraliza */
+h1, h2, h3 {
+  margin-top: 0;
+  text-align: center;
+}
+
+/* Utilitários */
+.center {
+  text-align: center;
+}
+
+.hidden {
+  display: none;
+}
+
+/* from: src/styles/components/_button.css */
+/* Botão padrão */
+button {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 0;
+  background: #0b5fff;
+  color: #fff;
+  cursor: pointer;
+  margin: 4px;
+}
+
+/* Botão secundário */
+button.secondary {
+  background: #6b7280;
+}
+
+/* from: src/styles/components/_forms.css */
+/* Inputs, selects e textareas */
+input, select, textarea {
+  width: 100%;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #d6d599;
+  margin-top: 6px;
+}
+
+/* Textarea: altura padrão maior e redimensionamento vertical */
+textarea {
+  height: 200px;
+  resize: vertical;
+}
+
+/* from: src/styles/components/_grid.css */
+/* 
+Layout em grade: colunas automáticas com largura mínima de 220px e espaçamento entre os itens 
+*/
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+/* from: src/styles/components/_images.css */
+.imagem-centralizada {
+  display: block;           /* Faz a imagem ocupar uma linha sozinha */
+  margin: 20px auto 0 auto; /* Centraliza horizontalmente, com margem acima opcional */
+  max-width: 100%;          /* Responsiva: não ultrapassa o container */
+  height: auto;             /* Mantém proporção */
+}
+
+/* from: src/styles/components/_legenda.css */
+/* Título de legenda */
+.leg-title {
+  font-size: 1.15em;
+  font-weight: bold;
+  margin-top: 24px;
+  margin-bottom: 2px;
+  display: block;
+}
+
+/* from: src/styles/components/_links.css */
+/* 
+Estilo para links especiais (hyperlink) 
+*/
+a.hyperlink-leg {
+  color: #0b5fff;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+/* from: src/styles/components/_pre.css */
+/* 
+Blocos do texto de resultado: fundo escuro, texto claro, espaçamento interno, cantos arredondados e rolagem para overflow 
+*/
+pre {
+  background: #0f1724;
+  color: #e6eef8;
+  padding: 12px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  overflow: auto;
+}
+
+/* from: src/styles/components/_tooltip.css */
+/* Ícone de tooltip (?) */
+.tooltip {
+  position: relative;
+  display: inline-block;
+  color: #0b5fff;
+  font-weight: bold;
+  cursor: pointer;
+  margin-left: 4px;
+}
+
+/* 
+Texto do tooltip (?): escondido por padrão, aparece acima ao passar o mouse, fundo escuro, texto claro, arredondado, transição de opacidade 
+*/
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 230px;
+  background-color: #0f1724;
+  color: #e6eef8;
+  text-align: left;
+  border-radius: 6px;
+  padding: 6px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -115px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 12px;
+}
+/* 
+Mostra o texto do tooltip ao passar o mouse 
+*/
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* from: src/styles/layout/_card.css */
+/* Estilo do componente de cartão (cabeçalho)*/
+.card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(20, 30, 40, 0.06);
+  max-width: 1100px;
+  margin: 20px auto;
+}
+
+/* from: src/styles/tables/_tables.css */
+table {
+  border-collapse: collapse;    /* Une as bordas das células */
+  width: 100%;                  /* Ocupa toda a largura do container */
+}
+
+th, td {
+  border: 1px solid #d6dbe0;    /* Borda fina e visível */
+  padding: 6px 4px;             /* Espaçamento interno para melhor visualização */
+  text-align: left;             /* Alinha o texto à esquerda */
+}
+
+th {
+  background: #f0f1f5;          /* Cor de fundo diferente para os cabeçalhos */
+}
+
+/* from: src/styles/themes/_light-theme.css */
+/* Tema claro (pode expandir para outros temas no futuro) */
+body {
+  background: #f6f8fa;
+  color: #222;
+}
+  </style>
+
   <title>DCOMB-RPPU</title>
 
   <!-- jsPDF & SheetJS -->
