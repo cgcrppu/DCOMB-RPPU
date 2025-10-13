@@ -209,8 +209,11 @@ body {
     <button id="btnLegislacao">Legislação</button>
   </div>
   <div>
-    <img src="src/images/RPPU.jpeg" alt="" class="imagem-centralizada">
+    <img src="src/images/RPPU.png" alt="" class="imagem-centralizada">
   </div>
+  <footer style="text-align:center; color:#222; background:#e6eef8; margin-top:32px; font-size:0.95em; padding:10px 0; border-radius:8px;">
+    <span id="last-updated">Última atualização: </span>
+  </footer>
 </div>
 
 <!-- Página Seleção do Tipo de Cálculo -->
@@ -728,7 +731,19 @@ body {
   </div>
 </div>
 
-<script src="javascript/javascript.js"></script>
+
+  <script>
+    // Exibe a data da última modificação do arquivo index.html SOMENTE na página inicial
+    window.addEventListener('DOMContentLoaded', function() {
+      var el = document.getElementById('last-updated');
+      if (el) {
+        const lastMod = new Date(document.lastModified);
+        const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+        el.textContent = 'Última atualização: ' + lastMod.toLocaleDateString('pt-BR', options);
+      }
+    });
+  </script>
+  <script src="javascript/javascript.js"></script>
 </body>
 
 </html>
