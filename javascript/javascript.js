@@ -438,12 +438,30 @@ document.getElementById('btnCalcularPosObito').onclick = function() {
   // Se o óbito ocorreu em ou após o dia 15, conta o próprio mês; caso contrário, não.
   const mesesDesdeInicioAno = (diaObito >= 15) ? mes : (mes - 1);
   const gratificacaoNatalProporcional = (salario / 12) * Math.max(0, mesesDesdeInicioAno);
-  resultado += `\nGratificação Natalina proporcional:\nMeses considerados: ${mesesDesdeInicioAno} - Valor: R$ ${formatCurrency(gratificacaoNatalProporcional)}\n`;
 
   // Valor de adiantamento do 13º (se informado). Só é considerado quando óbito no 2º semestre (mês >= 6)
-  const gratNatalVal = parseMonetary(document.getElementById('posObitoGratNatal')?.value) || 0;
+  let gratNatalVal = 0;
+  const gratNatalInput = document.getElementById('posObitoGratNatal');
+  if (gratNatalInput && gratNatalInput.value != null) {
+    const val = gratNatalInput.value.trim();
+    gratNatalVal = val === '' ? 0 : parseMonetary(val);
+    // Se o campo existe mas está vazio, considera 0 (corrige bug para mostrar valor devido)
+  }
+
+  // Linha informativa sobre o proporcional de Gratificação Natalina
+  let infoGratNatal = '';
+  let gratNatalInfoStr = '';
+  if (gratificacaoNatalProporcional > gratNatalVal) {
+    gratNatalInfoStr = `Valor devido proporcional de Gratificação Natalina: R$ ${formatCurrency(gratificacaoNatalProporcional - gratNatalVal)}`;
+  } else if (gratificacaoNatalProporcional < gratNatalVal) {
+    gratNatalInfoStr = `Valor indevido proporcional de Gratificação Natalina: R$ ${formatCurrency(gratNatalVal - gratificacaoNatalProporcional)}`;
+  }
   if (mes >= 6) {
     resultado += `Adiantamento Grat. Natal (informado): R$ ${formatCurrency(gratNatalVal)}\n`;
+  }
+  resultado += `\nGratificação Natalina proporcional:\nMeses considerados: ${mesesDesdeInicioAno} - Valor: R$ ${formatCurrency(gratificacaoNatalProporcional)}\n`;
+  if (gratNatalInfoStr) {
+    resultado += gratNatalInfoStr + '\n';
   }
 
   // Valor base: soma de reposição por dias + adicional (se houve pagamento posterior)
@@ -460,11 +478,11 @@ document.getElementById('btnCalcularPosObito').onclick = function() {
     valorFinal = 0; // não exibimos valor final negativo no campo principal
   }
 
-  resultado += `\nValor base (dias + adicional se houver): R$ ${formatCurrency(baseCobrado)}\n`;
+  resultado += `\nValor base (Valor indevido competência óbito + valor de competência posterior do óbito): R$ ${formatCurrency(baseCobrado)}\n`;
   if (mes >= 6) {
-    resultado += `Valor final após subtrair Gratificação Natalina proporcional e somar adiantamento Grat. Natal (se houver): R$ ${formatCurrency(valorFinal)}\n`;
+    resultado += `Valor final: R$ ${formatCurrency(valorFinal)}\n`;
   } else {
-    resultado += `Valor final após subtrair Gratificação Natalina proporcional: R$ ${formatCurrency(valorFinal)}\n`;
+    resultado += `Valor final: R$ ${formatCurrency(valorFinal)}\n`;
   }
   if (pagamentoAosDependentes > 0) {
     resultado += `\nATENÇÃO: o cálculo resultou em valor negativo. Deverá ser pago aos dependentes: R$ ${formatCurrency(pagamentoAosDependentes)}\n`;
