@@ -799,6 +799,18 @@ body {
         <div><label>Número do processo SEI</label><input id="processoSEI"></div>
         <div><label>Número do PAT</label><input id="numPAT"></div>
         <div><label>Tipo de aposentadoria</label><input id="tipoApos"></div>
+        <div>
+          <label>Assinatura
+            <span class="tooltip">?
+              <span class="tooltiptext">Quem irá assinar o documento</span>
+            </span>
+          </label>
+          <select id="assinante">
+            <option value="">-- Selecione --</option>
+            <option value="Mirian Natsumi Eto">Mirian Natsumi Eto</option>
+            <option value="Josylene Aparecida Ferreira de Almeida">Josylene Aparecida Ferreira de Almeida</option>
+          </select>
+        </div>
       </div>
       <div class="center"><button id="gerarPortaria">Gerar Portaria</button></div>
       <textarea id="resultadoPortaria" readonly></textarea>

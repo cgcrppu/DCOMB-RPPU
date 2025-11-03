@@ -793,7 +793,25 @@ document.getElementById('gerarPortaria').onclick=()=>{
   const processo=document.getElementById('processoSEI').value||'XXXX';
   const pat=document.getElementById('numPAT').value||'XXX';
   const tipo=document.getElementById('tipoApos').value||'XXXX';
-  const texto=`A CHEFE DA DIVISÃO DE CONCESSÃO E MANUTENÇÃO DE BENEFÍCIOS DO RPPU - Substituta, da Coordenação de Atendimento do RPPU, vinculada à Coordenação-Geral de Centralização do RPPU, da Diretoria de Gestão de Pessoas do INSS, no uso das atribuições e a delegação de competência estabelecida pela PORTARIA DGP/INSS nº 05 de 18/04/2022, publicada no BSE de 19/04/2022, na PORTARIA MPS nº 3851 de 10/12/2024, publicada no DOU nº 240, de 13/12/2024, e Portaria/DGP/INSS nº 77, de 24/07/2025, publicada no BSE em 28/07/2025, resolve:\n\nConceder aposentadoria ${tipo} ao (a) servidor(a) ${nome}, matrícula SIAPE ${matricula}, ocupante do cargo de Técnico do Seguro Social, Classe S, Padrão V, do quadro de pessoal permanente do Instituto Nacional do Seguro Social, com fundamento no Artigo 20, § 2º, inciso I da Emenda Constitucional nº 103, de 2019 (Regra de Transição), com proventos integrais calculados com base na remuneração do servidor no cargo efetivo em que se der a aposentadoria e demais vantagens a que faz jus, na forma da lei. Observado o contido no processo SEI nº ${processo} e Protocolo de Requerimento PAT ${pat} do MEU INSS, e na forma da legislação vigente, declarando, em consequência, o referido cargo vago.\n\nEsta Portaria entra em vigor na data de sua publicação.`;
+  const assinante=document.getElementById('assinante').value;
+  
+  // Verifica se o campo de assinatura foi selecionado
+  if (!assinante || assinante === '') {
+    document.getElementById('resultadoPortaria').value = 'Preencha todos os campos corretamente.';
+    return;
+  }
+  
+  // Define o cargo baseado no assinante
+  let cargoAssinante, textoInicialCargo;
+  if (assinante === 'Mirian Natsumi Eto') {
+    cargoAssinante = 'Chefe da Divisão de Concessão e Manutenção de Benefícios do RPPU';
+    textoInicialCargo = 'A CHEFE DA DIVISÃO DE CONCESSÃO E MANUTENÇÃO DE BENEFÍCIOS DO RPPU';
+  } else {
+    cargoAssinante = 'Chefe da Divisão de Concessão e Manutenção de Benefícios do RPPU - Substituta';
+    textoInicialCargo = 'A CHEFE DA DIVISÃO DE CONCESSÃO E MANUTENÇÃO DE BENEFÍCIOS DO RPPU - Substituta';
+  }
+  
+  const texto=`${textoInicialCargo}, da Coordenação de Atendimento do RPPU, vinculada à Coordenação-Geral de Centralização do RPPU, da Diretoria de Gestão de Pessoas do INSS, no uso das atribuições e a delegação de competência estabelecida pela PORTARIA DGP/INSS nº 05 de 18/04/2022, publicada no BSE de 19/04/2022, na PORTARIA MPS nº 3851 de 10/12/2024, publicada no DOU nº 240, de 13/12/2024, e Portaria/DGP/INSS nº 77, de 24/07/2025, publicada no BSE em 28/07/2025, resolve:\n\nConceder aposentadoria ${tipo} ao (a) servidor(a) ${nome}, matrícula SIAPE ${matricula}, ocupante do cargo de Técnico do Seguro Social, Classe S, Padrão V, do quadro de pessoal permanente do Instituto Nacional do Seguro Social, com fundamento no Artigo 20, § 2º, inciso I da Emenda Constitucional nº 103, de 2019 (Regra de Transição), com proventos integrais calculados com base na remuneração do servidor no cargo efetivo em que se der a aposentadoria e demais vantagens a que faz jus, na forma da lei. Observado o contido no processo SEI nº ${processo} e Protocolo de Requerimento PAT ${pat} do MEU INSS, e na forma da legislação vigente, declarando, em consequência, o referido cargo vago.\n\nEsta Portaria entra em vigor na data de sua publicação.\n\n\n${assinante}\n${cargoAssinante}`;
   document.getElementById('resultadoPortaria').value=texto;
   document.getElementById('resultadoPortaria').scrollIntoView({behavior:'smooth'});
 };
