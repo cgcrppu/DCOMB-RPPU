@@ -11,14 +11,12 @@
 Define a fonte e o fundo básico para toda a página 
 */
 body {
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, 'Helvetica Neue', Arial;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   margin: 0;
   padding: 20px;
-  background: #0a7cee;
-  min-height: 100vh;
-  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-
 /* Responsividade básica */
 @media (max-width: 768px) {
   body {
@@ -484,15 +482,11 @@ body {
           <span class="tooltiptext">Fundamentação escolhida pelo servidor</span>
         </span>
       </label>
-      <input id="fundamentacaoApos" autocomplete="off">
-    </div>
-    <div>
-      <label>Data de Admissão
-        <span class="tooltip">?
-          <span class="tooltiptext">Data que o servidor entrou no Órgão</span>
-        </span>
-      </label>
-      <input id="dataAdmissaoApos" type="date">
+      <select id="fundamentacaoApos">
+        <option value="">-- Selecione --</option>
+        <option value="Paridade">Paridade</option>
+        <option value="Média">Média</option>
+      </select>
     </div>
     <div>
       <label>Data de Aposentadoria
@@ -511,6 +505,19 @@ body {
       <select id="cargoApos">
         <option value="Analista do Seguro Social">Analista do Seguro Social</option>
         <option value="Técnico do Seguro Social">Técnico do Seguro Social</option>
+      </select>
+    </div>
+    <div>
+      <label>Nível
+        <span class="tooltip">?
+          <span class="tooltiptext">Informe o nível do servidor</span>
+        </span>
+      </label>
+      <select id="nivelApos">
+        <option value="">-- Selecione --</option>
+        <option value="Superior">Superior</option>
+        <option value="Intermediário">Intermediário</option>
+        <option value="Auxiliar">Auxiliar</option>
       </select>
     </div>
     <div>
@@ -552,15 +559,20 @@ body {
       </select>
     </div>
     <div>
-      <label>GDASS - Aposentado</label>
-      <select id="gdassApos">
-        <option value="SIM">SIM</option>
-        <option value="NÃO">NÃO</option>
-      </select>
+      <label>Pontos de Gratificação de Desempenho - Ativo (%)
+        <span class="tooltip">?
+          <span class="tooltiptext">Informe a pontuação da gratificação de desempenho do servidor enquanto ativo</span>
+        </span>
+      </label>
+      <input id="gdassApos" type="number" min="0" max="100" step="0.01" autocomplete="off">
     </div>
     <div>
-      <label>Pontos GDASS (%)</label>
-  <input id="pontosGdassApos" type="number" min="0" max="100" step="0.01">
+      <label>Pontos de Gratificação de Desempenho - Inativo (%)
+        <span class="tooltip">?
+          <span class="tooltiptext">Informe a pontuação da gratificação de desempenho do servidor enquanto inativo</span>
+        </span>
+      </label>
+      <input id="gdassInativoApos" type="number" min="0" max="100" step="0.01" autocomplete="off">
     </div>
   </div>
   <h3 style="margin-top:32px;">Rubricas / Acertos Financeiros</h3>
@@ -571,7 +583,6 @@ body {
           <th>Rubrica (código)</th>
           <th>Denominação</th>
           <th>Valor padrão</th>
-          <th>Acerto Financeiro?</th>
           <th>Aplica em</th>
           <th>Incide PSS?</th>
           <th>Ativo (R$)</th>
@@ -589,6 +600,7 @@ body {
     <button id="adicionarRubrica">Adicionar Rubrica</button>
   </div>
   <div class="center">
+    <button id="btnCalcularApos">Calcular</button>
     <button class="secondary" id="btnBackAposentadoriaForm">Voltar</button>
   </div>
   <h3>Resultado</h3>
