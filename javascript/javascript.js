@@ -239,7 +239,7 @@ function formatInputMonetaryElement(el){
 function initMonetaryInputs(){
   const els = document.querySelectorAll('input.monetary');
   els.forEach(el=>{
-    // avoid double-binding listeners
+  // evita dupla vinculação de listeners
     if(el.dataset.monetaryInit === '1') return;
     // format on blur
     el.addEventListener('blur', ()=> formatInputMonetaryElement(el));
@@ -639,7 +639,7 @@ if (tbodyRubricas.children.length === 0) {
 // Regra (assumida): dias antes do dia da aposentadoria -> ativo; dia da aposentadoria e depois -> inativo
 // Se não houver data informada, considera tudo como ativo (inativo = 0).
 function atualizarProporcoesRubricas() {
-  // Helper: conta dias úteis (segunda a sexta) num mês e até um dia anterior
+  // Auxiliar: conta dias úteis (segunda a sexta) num mês e até um dia anterior
   function countBusinessDaysInMonth(year, month) {
     // month: 1-12
     const days = new Date(year, month, 0).getDate();
@@ -678,7 +678,7 @@ function atualizarProporcoesRubricas() {
   // Se fundamentação for "Média" e NÃO foi alterado manualmente e a linha não é nova, inativo fica 0; ativo mantém proporcionalidade pela data
   if (fundamentacao === 'Média' && !isManualAplica && !tr.dataset.nova) {
       if (codigoLinha === '82286') {
-        // GDASS special-case: baseAtivo = ponto * gdassApos ; baseInativo = ponto * gdassInativoApos
+  // Caso especial GDASS: baseAtivo = ponto * gdassApos ; baseInativo = ponto * gdassInativoApos
         const cargo = document.getElementById('cargoApos').value;
         const classe = document.getElementById('classeApos').value;
         const padrao = document.getElementById('padraoApos').value;
@@ -779,7 +779,7 @@ function atualizarProporcoesRubricas() {
     }
     if(!dateStr) {
       // sem data: tudo para ativo (caso geral)
-      // Special-case GDASS: Ativo = ponto * gdassApos ; Inativo = ponto * gdassInativoApos
+  // Caso especial GDASS: Ativo = ponto * gdassApos ; Inativo = ponto * gdassInativoApos
       if (codigoLinha === '82286') {
         const cargo = document.getElementById('cargoApos').value;
         const classe = document.getElementById('classeApos').value;
@@ -822,11 +822,11 @@ function atualizarProporcoesRubricas() {
       inpInativo.value = '';
       return;
     }
-    // Default proportional split from 'valor' into ativo/inativo
+  // Divisão proporcional padrão do 'valor' em ativo/inativo
     let valorAtivo = (valor * (diasAtivo / diasNoMes));
     let valorInativo = (valor * (diasInativo / diasNoMes));
 
-    // Special-case for Aux. Transporte (00951) and Aux. Alimentação (00136): use business-days proportionality
+  // Caso especial para Aux. Transporte (00951) e Aux. Alimentação (00136): usar proporcionalidade por dias úteis
     if (codigoLinha === '00951' || codigoLinha === '00136') {
       const partsB = dateStr.split('-').map(s => Number(s));
       const anoB = partsB[0], mesB = partsB[1], diaB = partsB[2];
@@ -836,7 +836,7 @@ function atualizarProporcoesRubricas() {
       valorInativo = totalBiz > 0 ? (valor * ((totalBiz - bizBefore) / totalBiz)) : 0;
     }
 
-    // Special-case for GDASS: compute proportional parts from per-point bases
+  // Caso especial para GDASS: calcular partes proporcionais a partir das bases por ponto
     if (codigoLinha === '82286') {
       const cargo = document.getElementById('cargoApos').value;
       const classe = document.getElementById('classeApos').value;
@@ -1410,7 +1410,18 @@ document.getElementById('btnCalcularApos')?.addEventListener('click', function()
       resumo += `\nTotal dos ajustes: R$ ${formatCurrency(totalAjustes)}\n`;
     }
 
-    document.getElementById('resultado').textContent = resumo;
+  // Renderiza o resumo: mantém o texto simples exceto quando o "Total dos ajustes" for negativo — nesse caso fica em negrito e vermelho
+    try{
+      const elRes = document.getElementById('resultado');
+  // converte quebras de linha em <br> para renderização HTML dentro do <pre>
+  let htmlResumo = resumo.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+      if (totalAjustes < 0) {
+        const totalStr = `R$ ${formatCurrency(totalAjustes)}`;
+  // substitui o texto simples do total por HTML estilizado (seguro, pois totalStr é controlado)
+  htmlResumo = htmlResumo.replace(`Total dos ajustes: ${totalStr}`, `Total dos ajustes: <strong style="color:red">${totalStr}</strong>`);
+      }
+      elRes.innerHTML = htmlResumo;
+    }catch(e){ document.getElementById('resultado').textContent = resumo; }
   } catch(err) {
     console.error('Erro ao calcular resumo de ajustes:', err);
     document.getElementById('resultado').textContent = 'Erro ao calcular resumo de ajustes. Veja console para detalhes.';
