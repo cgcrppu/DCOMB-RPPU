@@ -1400,14 +1400,14 @@ document.getElementById('btnCalcularApos')?.addEventListener('click', function()
     } else {
       resumo += 'Detalhamento de ajustes:\n';
       linhas.forEach(l => {
-        resumo += `${l.codigo} - ${l.denom} — Ajuste: R$ ${formatCurrency(l.ajuste)} | PSS (alocado): R$ ${formatCurrency(l.pss)}\n`;
+        resumo += `${l.codigo} - ${l.denom} — Ajuste: R$ ${formatCurrency(l.ajuste)} \n`;
       });
-      resumo += `\nTotal dos ajustes: R$ ${formatCurrency(totalAjustes)}\n`;
-      resumo += `Base PSS Ativo (soma das partes Ativo que incidem): R$ ${formatCurrency(somaAtivoParaPSS)}\n`;
-      resumo += `Total PSS de Ativo (calculado sobre a base): R$ ${formatCurrency(totalPSSAtivo)}\n`;
-      resumo += `\nBase PSS Inativo (soma das partes Inativo que incidem): R$ ${formatCurrency(somaInativoParaPSS)}\n`;
+      resumo += `Base PSS Ativo: R$ ${formatCurrency(somaAtivoParaPSS)}\n`;
+      resumo += `Total PSS de Ativo (calculado sobre a base Ativo): R$ ${formatCurrency(totalPSSAtivo)}\n`;
+      resumo += `\nBase PSS Inativo: R$ ${formatCurrency(somaInativoParaPSS)}\n`;
       resumo += `Teto RGPS: R$ ${formatCurrency(TETO_RGPS)} — Base tributável Inativo (somaInativo - teto, se positiva): R$ ${formatCurrency(baseInativoSupraceto)}\n`;
-      resumo += `Total PSS de Inativo (calculado sobre a base suprateto): R$ ${formatCurrency(totalPSSInativo)}\n`;
+      resumo += `Total PSS de Inativo (calculado sobre a base que supera o teto RGPS): R$ ${formatCurrency(totalPSSInativo)}\n`;
+      resumo += `\nTotal dos ajustes: R$ ${formatCurrency(totalAjustes)}\n`;
     }
 
     document.getElementById('resultado').textContent = resumo;
