@@ -153,8 +153,14 @@ function atualizarValorPadraoAbono(){
               const numericIn = parseMonetary(inpIn.value) || 0;
               let ajusteVal = numericAt - valorPadNum + numericIn;
               ajusteVal = normalizeAjuste(ajusteVal);
-              inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
-              inpAjuste.style.color = (ajusteVal < 0) ? 'red' : '';
+              // Se o Valor Padrão for exatamente 0, forçamos Ajuste = 0
+              if (valorPadNum === 0) {
+                inpAjuste.value = formatCurrency(0);
+                inpAjuste.style.color = '';
+              } else {
+                inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
+                inpAjuste.style.color = (ajusteVal < 0) ? 'red' : '';
+              }
             } else {
               // com data: proporcional por dias do mês (Ativo = dias antes do dia de aposentadoria)
               const parts = dateStr.split('-').map(s => Number(s));
@@ -170,10 +176,28 @@ function atualizarValorPadraoAbono(){
                   inpIn.value = formatCurrency(valorIn);
                   const numericAt = parseMonetary(inpAt.value) || 0;
                   const numericIn = parseMonetary(inpIn.value) || 0;
-                  let ajusteVal = numericAt - valorPadNum + numericIn;
-                  ajusteVal = normalizeAjuste(ajusteVal);
-                  inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
-                  inpAjuste.style.color = (ajusteVal < 0) ? 'red' : '';
+                  const rawValorPad = inp ? (inp.value||'').toString().trim() : '';
+                  const rawAt = inpAt.value ? inpAt.value.toString().trim() : '';
+                  const rawIn = inpIn.value ? inpIn.value.toString().trim() : '';
+                  if (!rawValorPad || !rawAt || !rawIn) {
+                    inpAjuste.value = formatCurrency(0);
+                    inpAjuste.style.color = '';
+                  } else {
+                    let ajusteVal = numericAt - valorPadNum + numericIn;
+                    ajusteVal = normalizeAjuste(ajusteVal);
+                    // Se o Valor Padrão for exatamente 0, forçamos Ajuste = 0
+                    if (valorPadNum === 0) {
+                      inpAjuste.value = formatCurrency(0);
+                      inpAjuste.style.color = '';
+                    } else if (numericIn > numericAt) {
+                      ajusteVal = Math.abs(ajusteVal);
+                      inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
+                      inpAjuste.style.color = '';
+                    } else {
+                      inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
+                      inpAjuste.style.color = (ajusteVal < 0) ? 'red' : '';
+                    }
+                  }
                 }
               }
             }
@@ -190,6 +214,7 @@ const rubricasAuto = {
   "00001": "Vencimento Básico",
   "00013": "Anuênio",
   "00591": "GAE - GRATIF.ATIV.EXERC",
+  "00053": "Adic. de Insalubridade",
   "82286": "GDASS - LEI 10855/2004",
   "00136": "Aux. Alimentação",
   "00951": "Aux. Transporte",
@@ -252,10 +277,14 @@ function initMonetaryInputs(){
     formatInputMonetaryElement(el);
     // if this is a 'valor padrão' field, update proporções ao formatar
     if (el.classList.contains('rubrica-valorpadrao')) {
-      el.addEventListener('blur', ()=> atualizarProporcoesRubricas());
+      // atualiza ao perder o foco (format) e também ao digitar (input) para reflexo imediato
+      el.addEventListener('blur', ()=> { if(typeof atualizarProporcoesRubricas === 'function') atualizarProporcoesRubricas(); if(typeof atualizarValorBaseFerias === 'function') atualizarValorBaseFerias(); });
+      el.addEventListener('input', ()=> { if(typeof atualizarProporcoesRubricas === 'function') atualizarProporcoesRubricas(); if(typeof atualizarValorBaseFerias === 'function') atualizarValorBaseFerias(); });
     }
     el.dataset.monetaryInit = '1';
   });
+  // atualiza o valor da base logo após inicializar inputs monetários
+  try{ if(typeof atualizarValorBaseFerias === 'function') atualizarValorBaseFerias(); }catch(e){}
 }
 
   // Executa inicialização dos inputs monetários logo após o DOM estar pronto
@@ -363,6 +392,21 @@ document.getElementById('btnAcumuloBeneficiosErario').onclick = () => {
   document.getElementById('saudeSuplementarArea').classList.add('hidden');
 };
 
+// ======================== Sincronização: Nome do servidor (Acertos -> Férias) ====================
+try{
+  const nomeAposElem = document.getElementById('nomeServidorApos');
+  const nomeFeriasElem = document.getElementById('nomeServidorFerias');
+  const syncNomeFerias = () => {
+    if(!nomeFeriasElem) return;
+    nomeFeriasElem.value = (nomeAposElem && nomeAposElem.value) ? nomeAposElem.value : '';
+  };
+  // Atualiza enquanto o usuário digita no campo de Acertos Financeiros
+  if(nomeAposElem) nomeAposElem.addEventListener('input', syncNomeFerias);
+  // Popula imediatamente (caso já exista valor)
+  window.setTimeout(syncNomeFerias, 10);
+}catch(e){ console.warn('Erro sincronizando nome servidor entre Acertos e Férias', e); }
+
+
 // ======================== Rubricas - Acertos Financeiros ====================
 // Função auxiliar: busca na tabela `vencimentosBasicos` o valor correspondente
 // Parâmetros: cargo (string), classe (string), padrao (string), jornada ('40h'|'30h')
@@ -389,7 +433,8 @@ function criarLinhaRubrica(valorCodigo='') {
         <option value="00013">00013 - Anuênio</option>
         <option value="00591">00591 - GAE - GRATIF.ATIV.EXERC</option>
         <option value="82286">82286 - GDASS - LEI 10855/2004</option>
-        <option value="00136">00136 - Aux. Alimentação</option>
+  <option value="00053">00053 - Adic. de Insalubridade</option>
+  <option value="00136">00136 - Aux. Alimentação</option>
         <option value="00951">00951 - Aux. Transporte</option>
         <option value="82273">82273 - Abono Permanência</option>
         <option value="OUTRA">Outra...</option>
@@ -408,7 +453,7 @@ function criarLinhaRubrica(valorCodigo='') {
     <td>
       <select class="rubrica-incidepss">
         <option>Sim</option>
-        <option>Não</option>
+        <option selected>Não</option>
       </select>
     </td>
   <td><input style="width:80px" class="rubrica-ativo monetary" type="text" placeholder="0,00"></td>
@@ -607,8 +652,20 @@ function criarLinhaRubrica(valorCodigo='') {
   // Ao editar manualmente Ativo/Inativo, atualiza o Abono
   const inpAt = tr.querySelector('.rubrica-ativo');
   const inpIn = tr.querySelector('.rubrica-inativo');
-  if (inpAt) inpAt.addEventListener('blur', ()=>{ if (typeof atualizarValorPadraoAbono === 'function') atualizarValorPadraoAbono(); });
-  if (inpIn) inpIn.addEventListener('blur', ()=>{ if (typeof atualizarValorPadraoAbono === 'function') atualizarValorPadraoAbono(); });
+  if (inpAt) {
+    // marca edição manual ao digitar e atualiza Abono ao sair do campo
+    inpAt.addEventListener('input', ()=>{ try{ tr.dataset.valorManual = '1'; } catch(e){} });
+    inpAt.addEventListener('blur', ()=>{ if (typeof atualizarValorPadraoAbono === 'function') atualizarValorPadraoAbono(); });
+  }
+  if (inpIn) {
+    inpIn.addEventListener('input', ()=>{ try{ tr.dataset.valorManual = '1'; } catch(e){} });
+    inpIn.addEventListener('blur', ()=>{ if (typeof atualizarValorPadraoAbono === 'function') atualizarValorPadraoAbono(); });
+  }
+  // Ajuste também pode ser preenchido manualmente
+  const inpAjusteManual = tr.querySelector('.rubrica-ajuste');
+  if (inpAjusteManual) {
+    inpAjusteManual.addEventListener('input', ()=>{ try{ tr.dataset.valorManual = '1'; } catch(e){} });
+  }
 
   atualizarRubricaAuto();
   return tr;
@@ -621,11 +678,39 @@ document.getElementById('adicionarRubrica').onclick = function() {
   // initialize monetary formatting for inputs in the new row
   initMonetaryInputs();
 };
+// Botão Reiniciar: remove flags manuais e recalcula tudo (restaura comportamento automático)
+const reiniciarBtn = document.getElementById('reiniciarCalculo');
+if (reiniciarBtn) {
+  reiniciarBtn.onclick = function() {
+    // Limpa completamente o formulário e reinicia o cálculo como novo (zera tela)
+    try { document.getElementById('resultado').textContent = 'Preencha os dados e faça o download.'; } catch(e) {}
+    // limpa campos principais do formulário
+    ['cargoApos','classeApos','padraoApos','jornadaApos','gdassApos','gdassInativoApos','dataAposentadoriaApos','fundamentacaoApos'].forEach(id=>{
+      try{ const el = document.getElementById(id); if(el) { if(el.tagName === 'SELECT' || el.tagName === 'INPUT') el.value = ''; } }catch(e){}
+    });
+    // remove todas as linhas atuais
+    try {
+      const tbody = document.querySelector('#tabelaRubricas tbody');
+      if (tbody) tbody.innerHTML = '';
+      // recria as linhas padrão na mesma ordem usada na inicialização
+      const defaultOrder = ['00001','00013','00591','82286','00053','00136','00951','82273'];
+      defaultOrder.forEach(code => {
+        const row = criarLinhaRubrica(code);
+        if (tbody) tbody.appendChild(row);
+      });
+      // re-inicializa máscaras/formatadores e recalcula
+      if (typeof initMonetaryInputs === 'function') initMonetaryInputs();
+      if (typeof atualizarAplicaEmRubricas === 'function') atualizarAplicaEmRubricas();
+      if (typeof atualizarValorPadraoAbono === 'function') atualizarValorPadraoAbono();
+      if (typeof atualizarProporcoesRubricas === 'function') atualizarProporcoesRubricas();
+    } catch(e) { console.error('Erro ao reiniciar calculo', e); }
+  };
+}
 const tbodyRubricas = document.querySelector('#tabelaRubricas tbody');
 if (tbodyRubricas.children.length === 0) {
   // Ordem explícita solicitada pelo usuário:
   // Vencimento Básico, Anuênio, GAE, GDASS, Aux. Alimentação, Aux. Transporte, Abono
-  const defaultOrder = ['00001','00013','00591','82286','00136','00951','82273'];
+  const defaultOrder = ['00001','00013','00591','82286','00053','00136','00951','82273'];
   defaultOrder.forEach(code => {
     const row = criarLinhaRubrica(code);
     tbodyRubricas.appendChild(row);
@@ -633,6 +718,262 @@ if (tbodyRubricas.children.length === 0) {
   initMonetaryInputs();
   // Ajusta o campo "Aplica em" conforme a fundamentação atual (Média -> Ativo, Paridade -> Ambos)
   if (typeof atualizarAplicaEmRubricas === 'function') atualizarAplicaEmRubricas();
+}
+
+// Inicialização da tabela de Rubricas para Férias (funciona de forma independente)
+try{
+  const adicionarFeriasBtn = document.getElementById('adicionarRubricaFerias');
+  if(adicionarFeriasBtn){
+    adicionarFeriasBtn.onclick = function(){
+      const row = criarLinhaRubrica();
+      row.dataset.nova = '1';
+      const tbody = document.querySelector('#tabelaRubricasFerias tbody');
+      if(tbody) tbody.appendChild(row);
+      try{ removeExcludedRubricasFromRow(row); removeFeriasColumnsFromRow(row); }catch(e){}
+      // inicializa valores monetários como R$ 0,00 para facilitar inserção
+      try{
+        const vp = row.querySelector('.rubrica-valorpadrao'); if(vp) vp.value = formatCurrency(0);
+        const at = row.querySelector('.rubrica-ativo'); if(at) at.value = formatCurrency(0);
+        const inat = row.querySelector('.rubrica-inativo'); if(inat) inat.value = formatCurrency(0);
+        const aj = row.querySelector('.rubrica-ajuste'); if(aj) aj.value = formatCurrency(0);
+      }catch(e){}
+      initMonetaryInputs();
+      try{ if(typeof atualizarValorBaseFerias === 'function') atualizarValorBaseFerias(); }catch(e){}
+    };
+  }
+  const reiniciarFeriasBtn = document.getElementById('reiniciarCalculoFerias');
+  if(reiniciarFeriasBtn){
+    reiniciarFeriasBtn.onclick = function(){
+      try { document.getElementById('resultadoFerias').textContent = ''; } catch(e){}
+  // limpa campos relacionados (datas e nome do servidor)
+  ['dataIngressoServico','dataAposentadoriaFerias','nomeServidorFerias'].forEach(id=>{ try{ const el=document.getElementById(id); if(el) el.value=''; }catch(e){} });
+      // garante que os períodos aquisitivos também sejam atualizados/limpos
+      try{ if(typeof atualizarPeriodosAquisitivos === 'function') atualizarPeriodosAquisitivos(); }catch(e){}
+      // limpa também os campos de Dias Gozados
+      ['diasGozados1','diasGozados2','diasGozados3'].forEach(id=>{ try{ const el=document.getElementById(id); if(el) el.value=''; }catch(e){} });
+      // Limpa os valores apenas nas linhas existentes (não recria / remove colunas)
+      try{
+        const tbody = document.querySelector('#tabelaRubricasFerias tbody');
+        if(tbody){
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          rows.forEach(tr => {
+            try{
+              // limpa selects/inputs dentro da linha
+              // NÃO limpar códigos nem denominações: mantemos identificação das rubricas
+              // const sel = tr.querySelector('.rubrica-codigo-sel'); if(sel) sel.value = '';
+              // const inpCode = tr.querySelector('.rubrica-codigo'); if(inpCode) inpCode.value = '';
+              // const denom = tr.querySelector('.rubrica-denom'); if(denom) denom.value = '';
+              const valPad = tr.querySelector('.rubrica-valorpadrao'); if(valPad) valPad.value = formatCurrency(0);
+              const ativo = tr.querySelector('.rubrica-ativo'); if(ativo) ativo.value = formatCurrency(0);
+              const inativo = tr.querySelector('.rubrica-inativo'); if(inativo) inativo.value = formatCurrency(0);
+              const ajuste = tr.querySelector('.rubrica-ajuste'); if(ajuste) ajuste.value = formatCurrency(0);
+              // remove flags e datasets temporários
+              try{ delete tr.dataset.nova; }catch(e){}
+              try{ delete tr.dataset.valorManual; }catch(e){}
+              // reaplica filtro de opções (garante que linhas não tenham opções excluídas)
+              try{ removeExcludedRubricasFromRow(tr); }catch(e){}
+              // NOTA: não remover/alterar a coluna de ação (lixeira) ao reiniciar
+            }catch(e){}
+          });
+        }
+        if (typeof initMonetaryInputs === 'function') initMonetaryInputs();
+        try{ if(typeof atualizarValorBaseFerias === 'function') atualizarValorBaseFerias(); }catch(e){}
+      }catch(e){ console.error('Erro ao reiniciar calculo ferias', e); }
+    };
+  }
+  // Preenche a tabela de Férias com linhas padrão, se estiver vazia
+  const tbodyFerias = document.querySelector('#tabelaRubricasFerias tbody');
+  if(tbodyFerias && tbodyFerias.children.length === 0){
+    // Padrão para Férias: não incluir Aux. Alimentação (00136), Aux. Transporte (00951) e Abono (82273)
+    const feriasDefaultOrder = ['00001','00013','00591','82286','00053'];
+    feriasDefaultOrder.forEach(code => {
+      const row = criarLinhaRubrica(code);
+      tbodyFerias.appendChild(row);
+      try{ removeExcludedRubricasFromRow(row); removeFeriasColumnsFromRow(row);
+        // inicializa os valores monetários com zero
+        const vp = row.querySelector('.rubrica-valorpadrao'); if(vp) vp.value = formatCurrency(0);
+        const at = row.querySelector('.rubrica-ativo'); if(at) at.value = formatCurrency(0);
+        const inat = row.querySelector('.rubrica-inativo'); if(inat) inat.value = formatCurrency(0);
+        const aj = row.querySelector('.rubrica-ajuste'); if(aj) aj.value = formatCurrency(0);
+      }catch(e){}
+    });
+    if (typeof initMonetaryInputs === 'function') initMonetaryInputs();
+    try{ if(typeof atualizarValorBaseFerias === 'function') atualizarValorBaseFerias(); }catch(e){}
+  }
+}catch(e){ console.warn('Inicialização rubricas ferias: ', e); }
+
+// Remove colunas não aplicáveis para a tabela de Férias (Aplica em, Incide PSS, Ativo, Inativo, Ajuste)
+function removeFeriasColumnsFromRow(row){
+  if(!row) return;
+  try{
+    // A estrutura padrão de criarLinhaRubrica é: td[0]=codigo, td[1]=denom, td[2]=valorpadrao, td[3]=aplicaem, td[4]=incidepss, td[5]=ativo, td[6]=inativo, td[7]=ajuste, td[8]=acao
+    const tds = Array.from(row.children);
+    // Remover tds de índice 3..7 (se existirem), do maior para o menor para não alterar índices durante remoção
+    for(let i = 7; i >= 3; i--){ if(tds[i]) tds[i].remove(); }
+    // Opcional: ajustar estilos/widths se necessário
+  }catch(e){ /* ignore */ }
+}
+
+// Calcula e atualiza o campo 'Valor da base' somando os valores-padrão na tabela de Férias
+function atualizarValorBaseFerias(){
+  try{
+    const inputs = document.querySelectorAll('#tabelaRubricasFerias tbody .rubrica-valorpadrao');
+    let soma = 0;
+    inputs.forEach(inp => { if(inp) soma += parseMonetary(inp.value) || 0; });
+    const el = document.getElementById('valorBaseFerias');
+    if(el) el.value = formatCurrency(soma);
+  }catch(e){ /* ignore */ }
+}
+
+// Calcula e atualiza os campos de Período Aquisitivo (3 períodos) com base na data de aposentadoria
+function atualizarPeriodosAquisitivos(){
+  try{
+    const ingresso = (document.getElementById('dataIngressoServico')?.value) || '';
+    const apos = (document.getElementById('dataAposentadoriaFerias')?.value) || '';
+    const p1 = document.getElementById('periodoAquisitivo1');
+    const p2 = document.getElementById('periodoAquisitivo2');
+    const p3 = document.getElementById('periodoAquisitivo3');
+    const lbl1 = document.getElementById('periodoAquisitivo1LabelValue');
+    const lbl2 = document.getElementById('periodoAquisitivo2LabelValue');
+    const lbl3 = document.getElementById('periodoAquisitivo3LabelValue');
+    // limpa se não houver data de aposentadoria
+    if(!apos){ if(p1) p1.value=''; if(p2) p2.value=''; if(p3) p3.value=''; if(lbl1) lbl1.textContent=''; if(lbl2) lbl2.textContent=''; if(lbl3) lbl3.textContent=''; return; }
+    const anoApos = new Date(apos).getFullYear();
+    const anoIngresso = ingresso ? new Date(ingresso).getFullYear() : null;
+    const ranges = [
+      {s: anoApos - 1, e: anoApos},
+      {s: anoApos - 2, e: anoApos - 1},
+      {s: anoApos - 3, e: anoApos - 2}
+    ];
+    const labelFields = [lbl1, lbl2, lbl3];
+    const inputFields = [p1, p2, p3];
+    // helper: retorna número de meses entre duas datas aplicando regra de arredondamento (>15 dias conta como mês inteiro)
+    function monthsBetweenWithRounding(startDate, endDate){
+      if(!startDate || !endDate) return 0;
+      // normalize to Date objects (midnight)
+      const s = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      const e = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      if(e <= s) return 0;
+      let years = e.getFullYear() - s.getFullYear();
+      let months = e.getMonth() - s.getMonth();
+      let totalMonths = years * 12 + months;
+      // calcula dias remanescentes
+      let dayRem;
+      if(e.getDate() >= s.getDate()){
+        dayRem = e.getDate() - s.getDate();
+      } else {
+        // pega dias do mês anterior ao 'e'
+        const prevMonth = new Date(e.getFullYear(), e.getMonth(), 0); // dia 0 = último dia do mês anterior
+        const daysInPrev = prevMonth.getDate();
+        dayRem = e.getDate() + (daysInPrev - s.getDate());
+        totalMonths = Math.max(0, totalMonths - 1);
+      }
+      // se restaram mais de 15 dias, conta como um mês inteiro
+      if(dayRem > 15) totalMonths += 1;
+      return Math.max(0, totalMonths);
+    }
+
+    // Nova regra: cada período r representa o ano-base r.e (ex.: 2024/2025 -> ano-base = 2025 -> período 01/01/2025 a 31/12/2025)
+    ranges.forEach((r, idx) => {
+      const lbl = labelFields[idx];
+      const inp = inputFields[idx];
+      if(!lbl) return;
+      // Definimos cada período aquisitivo como o intervalo de aniversário a aniversário
+      // Ex.: para r = {s:2024,e:2025} e ingresso no dia/mês X, o período é [X/2024 , X/2025)
+      const ingressoDate = ingresso ? new Date(ingresso) : null;
+      const aposentDate = new Date(apos);
+      let monthsCount = 0;
+      if(ingressoDate){
+        const dayStart = ingressoDate.getDate();
+        const monthStartIndex = ingressoDate.getMonth(); // 0-based
+        // período começa em dia/mês do ingresso no ano r.s
+        const daysInStartMonth = new Date(r.s, monthStartIndex + 1, 0).getDate();
+        const realDayStart = Math.min(dayStart, daysInStartMonth);
+        const periodStart = new Date(r.s, monthStartIndex, realDayStart);
+        // período termina exatamente 1 ano depois (mesmo dia/mês do ano r.e)
+        const daysInEndMonth = new Date(r.s + 1, monthStartIndex + 1, 0).getDate();
+        const realDayEnd = Math.min(dayStart, daysInEndMonth);
+        const periodEnd = new Date(r.s + 1, monthStartIndex, realDayEnd);
+        // overlap entre período e janela ingresso->aposentadoria
+        const overlapStart = periodStart > ingressoDate ? periodStart : ingressoDate;
+        const overlapEnd = aposentDate < periodEnd ? aposentDate : periodEnd;
+        if(overlapEnd > overlapStart){
+          // percorre 12 meses a partir de periodStart, cada mês ancorado no dia de ingresso
+          for(let m = 0; m < 12; m++){
+            const ms = new Date(periodStart.getFullYear(), periodStart.getMonth() + m, 1);
+            const monthAnchorStartDay = Math.min(dayStart, new Date(ms.getFullYear(), ms.getMonth() + 1, 0).getDate());
+            const monthStart = new Date(ms.getFullYear(), ms.getMonth(), monthAnchorStartDay);
+            const nextMs = new Date(periodStart.getFullYear(), periodStart.getMonth() + m + 1, 1);
+            const nextMonthAnchorStartDay = Math.min(dayStart, new Date(nextMs.getFullYear(), nextMs.getMonth() + 1, 0).getDate());
+            const nextMonthStart = new Date(nextMs.getFullYear(), nextMs.getMonth(), nextMonthAnchorStartDay);
+            const monthEnd = new Date(nextMonthStart.getFullYear(), nextMonthStart.getMonth(), nextMonthStart.getDate() - 1);
+            const workStart = overlapStart > monthStart ? overlapStart : monthStart;
+            const workEnd = overlapEnd < monthEnd ? overlapEnd : monthEnd;
+            const msPerDay = 24 * 60 * 60 * 1000;
+            const daysWorked = Math.max(0, Math.floor((workEnd - workStart) / msPerDay) + 1);
+            if(daysWorked >= 15) monthsCount += 1;
+          }
+        }
+      } else {
+        // fallback: se não houver data de ingresso, mantemos lógica por ano-base
+        const yearBase = r.e; // ano que representa o período
+        const periodStart = new Date(yearBase, 0, 1); // 1 jan
+        const periodEnd = new Date(yearBase, 11, 31); // 31 dec
+        const overlapStart = periodStart;
+        const overlapEnd = aposentDate < periodEnd ? aposentDate : periodEnd;
+        if(overlapEnd > overlapStart){
+          const dayStartFallback = 1;
+          for(let m = 0; m < 12; m++){
+            const monthStart = new Date(yearBase, m, dayStartFallback);
+            const nextMonthStart = new Date(yearBase, m + 1, dayStartFallback);
+            const monthEnd = new Date(nextMonthStart.getFullYear(), nextMonthStart.getMonth(), nextMonthStart.getDate() - 1);
+            const workStart = overlapStart > monthStart ? overlapStart : monthStart;
+            const workEnd = overlapEnd < monthEnd ? overlapEnd : monthEnd;
+            const msPerDay = 24 * 60 * 60 * 1000;
+            const daysWorked = Math.max(0, Math.floor((workEnd - workStart) / msPerDay) + 1);
+            if(daysWorked >= 15) monthsCount += 1;
+          }
+        }
+      }
+      const daysEntitled = monthsCount * (30/12); // 2.5 dias por mês
+      const formattedDays = (Math.abs(daysEntitled % 1) < 0.001) ? String(Math.round(daysEntitled)) : String(daysEntitled.toFixed(1));
+      const periodText = `${r.s}/${r.e}`;
+      lbl.textContent = periodText;
+      if(inp) inp.value = `${formattedDays} dias`;
+      // atualiza o rótulo dos campos 'Dias Gozados' para conter o mesmo período
+      try{
+        const diasLbl = document.getElementById(`diasGozados${idx+1}LabelValue`);
+        if(diasLbl) diasLbl.textContent = periodText;
+      }catch(e){}
+      // atualiza também os rótulos dos selects 'Recebeu 1/3?'
+      try{
+        const tercoLbl = document.getElementById(`recebeUmTerco${idx+1}LabelValue`);
+        if(tercoLbl) tercoLbl.textContent = periodText;
+      }catch(e){}
+    });
+  }catch(e){ console.warn('Erro ao atualizar períodos aquisitivos', e); }
+}
+
+// Dispara atualização quando as datas mudarem e também ao carregar a página
+document.getElementById('dataAposentadoriaFerias')?.addEventListener('change', atualizarPeriodosAquisitivos);
+document.getElementById('dataIngressoServico')?.addEventListener('change', atualizarPeriodosAquisitivos);
+window.addEventListener('load', function(){ try{ atualizarPeriodosAquisitivos(); }catch(e){} });
+
+// Remove opções indesejadas (Aux. Alimentação 00136, Aux. Transporte 00951, Abono 82273)
+function removeExcludedRubricasFromRow(row){
+  if(!row) return;
+  try{
+    const sel = row.querySelector('.rubrica-codigo-sel');
+    if(!sel) return;
+    const exclude = ['00136','00951','82273'];
+    // remove option elements with these values
+    Array.from(sel.querySelectorAll('option')).forEach(opt => {
+      if(exclude.includes(opt.value)) opt.remove();
+    });
+    // if the input code value is one of the excluded, clear it
+    const inpCode = row.querySelector('.rubrica-codigo');
+    if(inpCode && exclude.includes(inpCode.value)) inpCode.value = '';
+  }catch(e){ /* ignore */ }
 }
 
 // Recalcula os valores ativos/inativos das rubricas com base na data de aposentadoria
@@ -668,7 +1009,24 @@ function atualizarProporcoesRubricas() {
     const inpAtivo = tr.querySelector('.rubrica-ativo');
     const inpInativo = tr.querySelector('.rubrica-inativo');
     if(!inpValor || !inpAtivo || !inpInativo) return;
+    const rawValorPadEarly = inpValor.value ? inpValor.value.toString().trim() : '';
     const valor = parseMonetary(inpValor.value);
+    // Se o valor padrão estiver vazio ou numericamente zero, já força Ajuste = 0 e pula a lógica desta linha
+    try {
+      const inpAjusteEarly = tr.querySelector('.rubrica-ajuste');
+      if (inpAjusteEarly && (!rawValorPadEarly || valor === 0)) {
+        // forza Ativo, Inativo e Ajuste para zero quando Valor Padrão está vazio ou é numeric 0
+        try { if (inpAtivo) inpAtivo.value = formatCurrency(0); } catch(e){}
+        try { if (inpInativo) inpInativo.value = formatCurrency(0); } catch(e){}
+        inpAjusteEarly.value = formatCurrency(0);
+        inpAjusteEarly.style.color = '';
+        // remove marca 'nova' se existia e passa para a próxima linha
+        if (tr.dataset.nova) delete tr.dataset.nova;
+        return;
+      }
+    } catch (e) { /* ignore and continue */ }
+    // Se o usuário editou manualmente qualquer campo de valores desta linha, preservamos os valores manuais
+    try { if (tr.dataset && tr.dataset.valorManual === '1') return; } catch(e) {}
     const codigoLinha = (tr.querySelector('.rubrica-codigo')?.value) || (tr.querySelector('.rubrica-codigo-sel')?.value) || '';
     // Respeita mudança manual do select 'Aplica em': se o usuário alterou, o 'aplica' prevalece sobre a fundamentação
     const selAplicaRow = tr.querySelector('.rubrica-aplicaem');
@@ -698,8 +1056,18 @@ function atualizarProporcoesRubricas() {
             const numericInativoNoDate = parseMonetary(inpInativo.value) || 0;
             let ajusteValNoDate = numericAtivoNoDate - baseAtivo + numericInativoNoDate;
             ajusteValNoDate = normalizeAjuste(ajusteValNoDate);
-            inpAjusteNoDate.value = isNaN(ajusteValNoDate) ? '' : formatCurrency(ajusteValNoDate);
-            inpAjusteNoDate.style.color = (ajusteValNoDate < 0) ? 'red' : '';
+            // Se o Valor Padrão (ou baseAtivo no caso do GDASS) for 0, força Ajuste = 0
+            if (valor === 0 || baseAtivo === 0) {
+              inpAjusteNoDate.value = formatCurrency(0);
+              inpAjusteNoDate.style.color = '';
+            } else if (numericInativoNoDate > numericAtivoNoDate) {
+              ajusteValNoDate = Math.abs(ajusteValNoDate);
+              inpAjusteNoDate.value = isNaN(ajusteValNoDate) ? '' : formatCurrency(ajusteValNoDate);
+              inpAjusteNoDate.style.color = '';
+            } else {
+              inpAjusteNoDate.value = isNaN(ajusteValNoDate) ? '' : formatCurrency(ajusteValNoDate);
+              inpAjusteNoDate.style.color = (ajusteValNoDate < 0) ? 'red' : '';
+            }
           }
           return;
         }
@@ -720,8 +1088,14 @@ function atualizarProporcoesRubricas() {
           const numericInativoNoDate = parseMonetary(inpInativo.value) || 0;
           let ajusteValNoDate = numericAtivoNoDate - valor + numericInativoNoDate;
           ajusteValNoDate = normalizeAjuste(ajusteValNoDate);
-          inpAjusteNoDate.value = isNaN(ajusteValNoDate) ? '' : formatCurrency(ajusteValNoDate);
-          inpAjusteNoDate.style.color = (ajusteValNoDate < 0) ? 'red' : '';
+          if (numericInativoNoDate > numericAtivoNoDate) {
+            ajusteValNoDate = Math.abs(ajusteValNoDate);
+            inpAjusteNoDate.value = isNaN(ajusteValNoDate) ? '' : formatCurrency(ajusteValNoDate);
+            inpAjusteNoDate.style.color = '';
+          } else {
+            inpAjusteNoDate.value = isNaN(ajusteValNoDate) ? '' : formatCurrency(ajusteValNoDate);
+            inpAjusteNoDate.style.color = (ajusteValNoDate < 0) ? 'red' : '';
+          }
         }
         return;
       }
@@ -750,10 +1124,28 @@ function atualizarProporcoesRubricas() {
         if (inpAjuste) {
           const numericAtivoM = parseMonetary(inpAtivo.value) || 0;
           const numericInativoM = parseMonetary(inpInativo.value) || 0;
-          let ajusteVal = numericAtivoM - valor + numericInativoM;
-          ajusteVal = normalizeAjuste(ajusteVal);
-          inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
-          inpAjuste.style.color = (ajusteVal < 0) ? 'red' : '';
+          const rawValorPad = inpValor.value ? inpValor.value.toString().trim() : '';
+          const rawAt = inpAtivo.value ? inpAtivo.value.toString().trim() : '';
+          const rawIn = inpInativo.value ? inpInativo.value.toString().trim() : '';
+          if (!rawValorPad || !rawAt || !rawIn) {
+            inpAjuste.value = formatCurrency(0);
+            inpAjuste.style.color = '';
+          } else {
+            let ajusteVal = numericAtivoM - valor + numericInativoM;
+            ajusteVal = normalizeAjuste(ajusteVal);
+            // Se o Valor Padrão for exatamente 0, forçamos Ajuste = 0
+            if (valor === 0) {
+              inpAjuste.value = formatCurrency(0);
+              inpAjuste.style.color = '';
+            } else if (numericInativoM > numericAtivoM) {
+              ajusteVal = Math.abs(ajusteVal);
+              inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
+              inpAjuste.style.color = '';
+            } else {
+              inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
+              inpAjuste.style.color = (ajusteVal < 0) ? 'red' : '';
+            }
+          }
         }
         return;
       }
@@ -772,8 +1164,18 @@ function atualizarProporcoesRubricas() {
         const numericInativoM = parseMonetary(inpInativo.value) || 0;
   let ajusteVal = numericAtivoM - valor + numericInativoM;
   ajusteVal = normalizeAjuste(ajusteVal);
-  inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
-  inpAjuste.style.color = (ajusteVal < 0) ? 'red' : '';
+  // Se o Valor Padrão for exatamente 0, forçamos Ajuste = 0
+  if (valor === 0) {
+    inpAjuste.value = formatCurrency(0);
+    inpAjuste.style.color = '';
+  } else if (numericInativoM > numericAtivoM) {
+    ajusteVal = Math.abs(ajusteVal);
+    inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
+    inpAjuste.style.color = '';
+  } else {
+    inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
+    inpAjuste.style.color = (ajusteVal < 0) ? 'red' : '';
+  }
       }
       return;
     }
@@ -801,10 +1203,28 @@ function atualizarProporcoesRubricas() {
       if (inpAjusteNoDateGen) {
         const numericAtivo = parseMonetary(inpAtivo.value) || 0;
         const numericInativo = parseMonetary(inpInativo.value) || 0;
-  let ajusteValGen = numericAtivo - valor + numericInativo;
-  ajusteValGen = normalizeAjuste(ajusteValGen);
-  inpAjusteNoDateGen.value = isNaN(ajusteValGen) ? '' : formatCurrency(ajusteValGen);
-  inpAjusteNoDateGen.style.color = (ajusteValGen < 0) ? 'red' : '';
+  const rawValorPadGen = inpValor.value ? inpValor.value.toString().trim() : '';
+  const rawAtGen = inpAtivo.value ? inpAtivo.value.toString().trim() : '';
+  const rawInGen = inpInativo.value ? inpInativo.value.toString().trim() : '';
+  if (!rawValorPadGen || !rawAtGen || !rawInGen) {
+    inpAjusteNoDateGen.value = formatCurrency(0);
+    inpAjusteNoDateGen.style.color = '';
+  } else {
+    let ajusteValGen = numericAtivo - valor + numericInativo;
+    ajusteValGen = normalizeAjuste(ajusteValGen);
+    // Se o Valor Padrão for exatamente 0, forza Ajuste = 0
+    if (valor === 0) {
+      inpAjusteNoDateGen.value = formatCurrency(0);
+      inpAjusteNoDateGen.style.color = '';
+    } else if (numericInativo > numericAtivo) {
+      ajusteValGen = Math.abs(ajusteValGen);
+      inpAjusteNoDateGen.value = isNaN(ajusteValGen) ? '' : formatCurrency(ajusteValGen);
+      inpAjusteNoDateGen.style.color = '';
+    } else {
+      inpAjusteNoDateGen.value = isNaN(ajusteValGen) ? '' : formatCurrency(ajusteValGen);
+      inpAjusteNoDateGen.style.color = (ajusteValGen < 0) ? 'red' : '';
+    }
+  }
       }
       return;
     }
@@ -862,10 +1282,28 @@ function atualizarProporcoesRubricas() {
       if (inpAjuste) {
         const numericAtivo = parseMonetary(inpAtivo.value) || 0;
         const numericInativo = parseMonetary(inpInativo.value) || 0;
-  let ajusteVal = numericAtivo - valor + numericInativo;
-  ajusteVal = normalizeAjuste(ajusteVal);
-  inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
-  inpAjuste.style.color = (ajusteVal < 0) ? 'red' : '';
+  const rawValorPadLocal = inpValor.value ? inpValor.value.toString().trim() : '';
+  const rawAtLocal = inpAtivo.value ? inpAtivo.value.toString().trim() : '';
+  const rawInLocal = inpInativo.value ? inpInativo.value.toString().trim() : '';
+  if (!rawValorPadLocal || !rawAtLocal || !rawInLocal) {
+    inpAjuste.value = formatCurrency(0);
+    inpAjuste.style.color = '';
+  } else {
+    let ajusteVal = numericAtivo - valor + numericInativo;
+    ajusteVal = normalizeAjuste(ajusteVal);
+    // Se o Valor Padrão for exatamente 0, forçamos Ajuste = 0
+    if (valor === 0) {
+      inpAjuste.value = formatCurrency(0);
+      inpAjuste.style.color = '';
+    } else if (numericInativo > numericAtivo) {
+      ajusteVal = Math.abs(ajusteVal);
+      inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
+      inpAjuste.style.color = '';
+    } else {
+      inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
+      inpAjuste.style.color = (ajusteVal < 0) ? 'red' : '';
+    }
+  }
       }
     } else if (aplica === 'Ambos') {
       inpAtivo.value = valorAtivo ? formatCurrency(valorAtivo) : '';
@@ -874,10 +1312,20 @@ function atualizarProporcoesRubricas() {
       if (inpAjuste) {
         const numericAtivo = parseMonetary(inpAtivo.value) || 0;
         const numericInativo = parseMonetary(inpInativo.value) || 0;
-  let ajusteVal = numericAtivo - valor + numericInativo;
+      let ajusteVal = numericAtivo - valor + numericInativo;
   ajusteVal = normalizeAjuste(ajusteVal);
-  inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
-  inpAjuste.style.color = (ajusteVal < 0) ? 'red' : '';
+  // Se o Valor Padrão for exatamente 0, forçamos Ajuste = 0
+  if (valor === 0) {
+    inpAjuste.value = formatCurrency(0);
+    inpAjuste.style.color = '';
+  } else if (numericInativo > numericAtivo) {
+    ajusteVal = Math.abs(ajusteVal);
+    inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
+    inpAjuste.style.color = '';
+  } else {
+    inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
+    inpAjuste.style.color = (ajusteVal < 0) ? 'red' : '';
+  }
       }
     } else if (aplica === 'Inativo') {
       inpAtivo.value = formatCurrency(0);
@@ -887,10 +1335,28 @@ function atualizarProporcoesRubricas() {
       if (inpAjusteIn) {
         const numericAtivo = parseMonetary(inpAtivo.value) || 0;
         const numericInativo = parseMonetary(inpInativo.value) || 0;
-  let ajusteValIn = numericAtivo - valor + numericInativo;
-  ajusteValIn = normalizeAjuste(ajusteValIn);
-  inpAjusteIn.value = isNaN(ajusteValIn) ? '' : formatCurrency(ajusteValIn);
-  inpAjusteIn.style.color = (ajusteValIn < 0) ? 'red' : '';
+  const rawValorPadIn = inpValor.value ? inpValor.value.toString().trim() : '';
+  const rawAtIn = inpAtivo.value ? inpAtivo.value.toString().trim() : '';
+  const rawInIn = inpInativo.value ? inpInativo.value.toString().trim() : '';
+  if (!rawValorPadIn || !rawAtIn || !rawInIn) {
+    inpAjusteIn.value = formatCurrency(0);
+    inpAjusteIn.style.color = '';
+  } else {
+    let ajusteValIn = numericAtivo - valor + numericInativo;
+    ajusteValIn = normalizeAjuste(ajusteValIn);
+    // Se o Valor Padrão for exatamente 0, forçamos Ajuste = 0
+    if (valor === 0) {
+      inpAjusteIn.value = formatCurrency(0);
+      inpAjusteIn.style.color = '';
+    } else if (numericInativo > numericAtivo) {
+      ajusteValIn = Math.abs(ajusteValIn);
+      inpAjusteIn.value = isNaN(ajusteValIn) ? '' : formatCurrency(ajusteValIn);
+      inpAjusteIn.style.color = '';
+    } else {
+      inpAjusteIn.value = isNaN(ajusteValIn) ? '' : formatCurrency(ajusteValIn);
+      inpAjusteIn.style.color = (ajusteValIn < 0) ? 'red' : '';
+    }
+  }
       }
     } else {
       // Valor padrão: distribui normalmente (ambos)
@@ -901,10 +1367,28 @@ function atualizarProporcoesRubricas() {
       if (inpAjusteDef) {
         const numericAtivo = parseMonetary(inpAtivo.value) || 0;
         const numericInativo = parseMonetary(inpInativo.value) || 0;
-  let ajusteValDef = numericAtivo - valor + numericInativo;
-  ajusteValDef = normalizeAjuste(ajusteValDef);
-  inpAjusteDef.value = isNaN(ajusteValDef) ? '' : formatCurrency(ajusteValDef);
-  inpAjusteDef.style.color = (ajusteValDef < 0) ? 'red' : '';
+  const rawValorPadDef = inpValor.value ? inpValor.value.toString().trim() : '';
+  const rawAtDef = inpAtivo.value ? inpAtivo.value.toString().trim() : '';
+  const rawInDef = inpInativo.value ? inpInativo.value.toString().trim() : '';
+  if (!rawValorPadDef || !rawAtDef || !rawInDef) {
+    inpAjusteDef.value = formatCurrency(0);
+    inpAjusteDef.style.color = '';
+  } else {
+    let ajusteValDef = numericAtivo - valor + numericInativo;
+    ajusteValDef = normalizeAjuste(ajusteValDef);
+    // Se o Valor Padrão for exatamente 0, forçamos Ajuste = 0
+    if (valor === 0) {
+      inpAjusteDef.value = formatCurrency(0);
+      inpAjusteDef.style.color = '';
+    } else if (numericInativo > numericAtivo) {
+      ajusteValDef = Math.abs(ajusteValDef);
+      inpAjusteDef.value = isNaN(ajusteValDef) ? '' : formatCurrency(ajusteValDef);
+      inpAjusteDef.style.color = '';
+    } else {
+      inpAjusteDef.value = isNaN(ajusteValDef) ? '' : formatCurrency(ajusteValDef);
+      inpAjusteDef.style.color = (ajusteValDef < 0) ? 'red' : '';
+    }
+  }
       }
     }
     // Se a linha estava marcada como recém-criada, removemos a marca após o primeiro cálculo
@@ -927,14 +1411,53 @@ function atualizarProporcoesRubricas() {
         const valorPad = parseMonetary(inpValor.value) || 0;
         const numericAtivo = parseMonetary(inpAtivo.value) || 0;
         const numericInativo = parseMonetary(inpInativo.value) || 0;
-        let ajusteVal = numericAtivo - valorPad + numericInativo;
-        ajusteVal = normalizeAjuste(ajusteVal);
-        inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
-        inpAjuste.style.color = (ajusteVal < 0) ? 'red' : '';
+        const rawValorPad = inpValor.value ? inpValor.value.toString().trim() : '';
+        const rawAt = inpAtivo.value ? inpAtivo.value.toString().trim() : '';
+        const rawIn = inpInativo.value ? inpInativo.value.toString().trim() : '';
+        if (!rawValorPad || !rawAt || !rawIn) {
+          inpAjuste.value = formatCurrency(0);
+          inpAjuste.style.color = '';
+          } else {
+          let ajusteVal = numericAtivo - valorPad + numericInativo;
+          ajusteVal = normalizeAjuste(ajusteVal);
+          // Se o Valor Padrão do Abono for exatamente 0, força Ajuste = 0
+          if (valorPad === 0) {
+            inpAjuste.value = formatCurrency(0);
+            inpAjuste.style.color = '';
+          } else if (numericInativo > numericAtivo) {
+            ajusteVal = Math.abs(ajusteVal);
+            inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
+            inpAjuste.style.color = '';
+          } else {
+            inpAjuste.value = isNaN(ajusteVal) ? '' : formatCurrency(ajusteVal);
+            inpAjuste.style.color = (ajusteVal < 0) ? 'red' : '';
+          }
+        }
       }catch(e){}
     });
   }catch(e){}
 }
+  // Passo final: se algum dos campos essenciais estiver vazio, força Ajuste = 0
+  try{
+    document.querySelectorAll('#tabelaRubricas tbody tr').forEach(tr => {
+      try{
+        const inpValor = tr.querySelector('.rubrica-valorpadrao');
+        const inpAt = tr.querySelector('.rubrica-ativo');
+        const inpIn = tr.querySelector('.rubrica-inativo');
+        const inpAjuste = tr.querySelector('.rubrica-ajuste');
+        if(!inpValor || !inpAt || !inpIn || !inpAjuste) return;
+        const rawValor = inpValor.value ? inpValor.value.toString().trim() : '';
+        const rawAt = inpAt.value ? inpAt.value.toString().trim() : '';
+        const rawIn = inpIn.value ? inpIn.value.toString().trim() : '';
+        const valorNum = parseMonetary(inpValor.value) || 0;
+        // Força Ajuste = 0 se algum campo essencial estiver vazio OU se o valor padrão for numericamente 0
+        if (!rawValor || !rawAt || !rawIn || valorNum === 0) {
+          inpAjuste.value = formatCurrency(0);
+          inpAjuste.style.color = '';
+        }
+      }catch(e){}
+    });
+  }catch(e){}
 
 // Atualiza proporções quando a data de aposentadoria mudar
 const elDataApos = document.getElementById('dataAposentadoriaApos');
@@ -942,7 +1465,7 @@ if(elDataApos) elDataApos.addEventListener('change', atualizarProporcoesRubricas
 // Recalcula quando a fundamentação mudar (ex.: Média zera inativo)
 const elFund = document.getElementById('fundamentacaoApos');
 // Quando a fundamentação mudar, atualiza tanto as proporções quanto o campo "Aplica em"
-if(elFund) elFund.addEventListener('change', ()=>{ atualizarProporcoesRubricas(); if (typeof atualizarAplicaEmRubricas === 'function') atualizarAplicaEmRubricas(); });
+if(elFund) elFund.addEventListener('change', ()=>{ if (typeof atualizarAplicaEmRubricas === 'function') atualizarAplicaEmRubricas(); });
 
 // Atualiza/força os valores do select "Aplica em" para as rubricas padrão conforme a fundamentação
 function atualizarAplicaEmRubricas() {
@@ -978,6 +1501,8 @@ function atualizarAplicaEmRubricas() {
       }
     }
   });
+  // Após ajustar os selects programaticamente, recalcula as proporções para refletir as mudanças
+  if (typeof atualizarProporcoesRubricas === 'function') atualizarProporcoesRubricas();
 }
 
 // ======================== Pós-óbito - Cálculo ========================
@@ -1433,16 +1958,62 @@ document.getElementById('btnFeriasPDF').onclick = function() {
   baixarPDF("Calculo_Ferias", document.getElementById('resultadoFerias').textContent);
 };
 document.getElementById('btnFeriasXLS').onclick = function() {
-  const header = ["Período","Valor Férias (R$)","Abono (R$)","Desconto IR (R$)","Desconto PSS (R$)","Total líquido (R$)"];
-  const periodo = document.getElementById('feriasPeriodo').value;
-  const valor = parseMonetary(document.getElementById('feriasValor').value)||0;
-  const abono = parseMonetary(document.getElementById('feriasAbono').value)||0;
-  const descontoIR = parseMonetary(document.getElementById('feriasDescontoIR').value)||0;
-  const descontoPSS = parseMonetary(document.getElementById('feriasDescontoPSS').value)||0;
-  const total = valor + abono - descontoIR - descontoPSS;
-  const row = [periodo, valor.toFixed(2), abono.toFixed(2), descontoIR.toFixed(2), descontoPSS.toFixed(2), total.toFixed(2)];
+  // Exporta informações básicas de Férias: nome, datas e resultado exibido
+  const header = ["Nome do Servidor","Data Ingresso Serviço Público","Data Aposentadoria","Resultado Férias"];
+  const nome = (document.getElementById('nomeServidorFerias')?.value) || '';
+  const ingresso = (document.getElementById('dataIngressoServico')?.value) || '';
+  const dataApos = (document.getElementById('dataAposentadoriaFerias')?.value) || '';
+  const resultado = (document.getElementById('resultadoFerias')?.textContent) || '';
+  const row = [nome, ingresso, dataApos, resultado];
   baixarXLS("Calculo_Ferias", [header, row]);
 };
+
+// Botão Calcular Férias — gera resumo com valores proporcionais por período
+document.getElementById('calcularFerias')?.addEventListener('click', function(){
+  try{
+    const nome = (document.getElementById('nomeServidorFerias')?.value) || '';
+    const ingresso = (document.getElementById('dataIngressoServico')?.value) || '';
+    const dataApos = (document.getElementById('dataAposentadoriaFerias')?.value) || '';
+    // formata datas DD/MM/AAAA para exibição no resultado
+    const fmtBR = (d) => {
+      if(!d) return '';
+      // espera formato YYYY-MM-DD (input type=date). Se não seguir, retorna original
+      const parts = (d+'').split('-');
+      if(parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      return d;
+    };
+    const valorBase = parseMonetary(document.getElementById('valorBaseFerias')?.value) || 0;
+    const diaria = valorBase / 30;
+  let resumo = `Cálculo de Férias\nNome: ${nome}\nData ingresso: ${fmtBR(ingresso)}\nData aposentadoria: ${fmtBR(dataApos)}\n\n`;
+    let totalPagar = 0;
+    for(let i=1;i<=3;i++){
+      const periodLabel = (document.getElementById(`periodoAquisitivo${i}LabelValue`)?.textContent) || '';
+      // dias de direito calculados pelo sistema estão no input periodoAquisitivoN (ex: "30 dias")
+      const diasRaw = (document.getElementById(`periodoAquisitivo${i}`)?.value) || '';
+      let diasDireito = 0;
+      const m = (diasRaw+'').match(/([\d\.\,]+)/);
+      if(m) diasDireito = parseFloat(m[1].replace(',','.')) || 0;
+      // dias gozados informados pelo usuário
+      const gozadosRaw = (document.getElementById(`diasGozados${i}`)?.value) || '';
+      let diasGozados = parseFloat((gozadosRaw+'').replace(',','.')) || 0;
+      if(isNaN(diasGozados)) diasGozados = 0;
+      // garantir limites: não permitir reduzir menos que zero
+      if(diasGozados < 0) diasGozados = 0;
+      if(diasGozados > diasDireito) diasGozados = diasDireito;
+      const diasRestantes = Math.max(0, diasDireito - diasGozados);
+      // cálculo proporcional usa os dias restantes
+      const proporcional = diaria * diasRestantes;
+      const recebeu = (document.getElementById(`recebeUmTerco${i}`)?.value) || 'Não';
+      // o 1/3 a pagar refere-se ao valor proporcional ainda devido (após gozados)
+      const terc = (recebeu === 'Não') ? (proporcional / 3) : 0;
+      // acumula total a pagar (proporcional + 1/3 quando aplicável)
+      totalPagar += proporcional + terc;
+      resumo += `Período ${periodLabel || i}: Direito ${diasDireito} dias — Gozados ${diasGozados} dias — Restantes ${diasRestantes} dias — Valor proporcional: R$ ${formatCurrency(proporcional)} — 1/3 a pagar: R$ ${formatCurrency(terc)}\n`;
+    }
+    resumo += `\nTotal a pagar: R$ ${formatCurrency(totalPagar)}`;
+    document.getElementById('resultadoFerias').textContent = resumo;
+  }catch(e){ console.error('Erro ao calcular Férias:', e); document.getElementById('resultadoFerias').textContent = 'Erro ao calcular Férias. Veja console.'; }
+});
 
 // PDF/XLS Acúmulo de Benefícios — exporta a memória de cálculo
 document.getElementById('btnAcumuloPDF').onclick = function() {
