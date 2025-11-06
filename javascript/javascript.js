@@ -1694,6 +1694,185 @@ document.getElementById('btnFeriasXLS').onclick = function() {
   baixarXLS("Calculo_Ferias", [header, row]);
 };
 
+// ======================== Rubricas - Férias ====================
+// Cria uma linha simples para a tabela de rubricas de Férias
+function criarLinhaRubricaFerias(valorCodigo='', zeroInit=false) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>
+      <select class="rubrica-ferias-codigo-sel" style="width:180px;">
+        <option value="">--Selecione--</option>
+        <option value="00001">00001 - Vencimento Básico</option>
+        <option value="00013">00013 - Anuênio</option>
+        <option value="00591">00591 - GAE - GRATIF.ATIV.EXERC</option>
+        <option value="82286">82286 - GDASS - LEI 10855/2004</option>
+        <option value="00053">00053 - Adic. de Insalubridade</option>
+        <option value="00136">00136 - Aux. Alimentação</option>
+        <option value="00951">00951 - Aux. Transporte</option>
+        <option value="OUTRA">Outra...</option>
+      </select>
+      <input style="width:110px; margin-top:4px;" class="rubrica-ferias-codigo" ${valorCodigo ? `value="${valorCodigo}"` : ""} placeholder="Código" autocomplete="off">
+    </td>
+    <td><input style="width:240px" class="rubrica-ferias-denom"></td>
+    <td><input style="width:120px" class="rubrica-ferias-valor monetary" type="text" placeholder="0,00"></td>
+    <td><button class="removerRubricaFerias" title="Remover linha">🗑️</button></td>
+  `;
+
+  const sel = tr.querySelector('.rubrica-ferias-codigo-sel');
+  const input = tr.querySelector('.rubrica-ferias-codigo');
+
+  // Se um código inicial foi passado, ajuste o select para corresponder
+  if (valorCodigo) {
+    if (rubricasOpcoes.includes(valorCodigo)) {
+      sel.value = valorCodigo;
+      input.value = valorCodigo;
+    } else {
+      sel.value = 'OUTRA';
+      input.value = valorCodigo;
+    }
+  }
+
+  function atualizarAutoFerias() {
+    const codigo = (input.value || sel.value || '').toString();
+    if (rubricasAuto[codigo]) tr.querySelector('.rubrica-ferias-denom').value = rubricasAuto[codigo];
+    else tr.querySelector('.rubrica-ferias-denom').value = '';
+
+    // Valor padrão automático para algumas rubricas
+    const valField = tr.querySelector('.rubrica-ferias-valor');
+    if (!valField) return;
+    // If zeroInit flag was provided, initialize the value to zero once (then remove the marker)
+    if (tr.dataset && tr.dataset.inicialZero === '1') {
+      valField.value = formatCurrency(0);
+      // remove marker so future changes recompute normally
+      try { delete tr.dataset.inicialZero; } catch(e) {}
+      return;
+    }
+
+    if (codigo === '00001') {
+      const cargo = document.getElementById('cargoApos')?.value;
+      const classe = document.getElementById('classeApos')?.value;
+      const padrao = document.getElementById('padraoApos')?.value;
+      const jornada = document.getElementById('jornadaApos')?.value;
+      const val = buscarVencimentoBasico(cargo, classe, padrao, jornada);
+      valField.value = val !== '' ? formatCurrency(val) : '';
+    } else if (codigo === '00591') {
+      const cargo = document.getElementById('cargoApos')?.value;
+      const classe = document.getElementById('classeApos')?.value;
+      const padrao = document.getElementById('padraoApos')?.value;
+      const jornada = document.getElementById('jornadaApos')?.value;
+      const valBase = buscarVencimentoBasico(cargo, classe, padrao, jornada);
+      valField.value = valBase !== '' ? formatCurrency(valBase * 1.6) : '';
+    } else if (codigo === '82286') {
+      const cargo = document.getElementById('cargoApos')?.value;
+      const classe = document.getElementById('classeApos')?.value;
+      const padrao = document.getElementById('padraoApos')?.value;
+      const jornada = document.getElementById('jornadaApos')?.value;
+      const ponto = buscarGDASSPorPonto(cargo, classe, padrao, jornada) || 0;
+      const qtdAtivo = Number(document.getElementById('gdassApos')?.value) || 0;
+      const val = (ponto !== '' && qtdAtivo > 0) ? (ponto * qtdAtivo) : '';
+      valField.value = val !== '' ? formatCurrency(val) : '';
+    } else if (codigo === '00136') {
+      valField.value = formatCurrency(1000);
+    } else {
+      // deixe em branco para outras
+      // só limpa se o usuário não tiver digitado manualmente
+      if (!tr.dataset.valorManual) valField.value = '';
+    }
+  }
+
+  sel.addEventListener('change', function() {
+    if (sel.value === 'OUTRA') { input.value = ''; input.focus(); }
+    else input.value = sel.value;
+    atualizarAutoFerias();
+  });
+  input.addEventListener('input', function() {
+    if (rubricasOpcoes.includes(input.value)) sel.value = input.value; else sel.value = 'OUTRA';
+    atualizarAutoFerias();
+  });
+
+  const valInp = tr.querySelector('.rubrica-ferias-valor');
+  if (valInp) {
+    valInp.addEventListener('input', ()=>{ try{ tr.dataset.valorManual = '1'; }catch(e){} });
+  }
+
+  tr.querySelector('.removerRubricaFerias').onclick = function() { tr.remove(); atualizarBaseFerias(); };
+  // initialize auto and formatting
+  // mark as initial-zero if requested so the first auto-update writes zero instead of computing
+  if (zeroInit) tr.dataset.inicialZero = '1';
+  setTimeout(()=>{ atualizarAutoFerias(); initMonetaryInputs(); }, 10);
+  return tr;
+}
+
+// Adiciona/Inicializa a tabela de rubricas de Férias com valores padrão
+try{
+  const btnAddFerias = document.getElementById('adicionarRubricaFerias');
+  if (btnAddFerias) btnAddFerias.onclick = function(){
+    const row = criarLinhaRubricaFerias();
+    const tbody = document.querySelector('#tabelaRubricasFerias tbody');
+    if (tbody) tbody.appendChild(row);
+    if (typeof atualizarBaseFerias === 'function') atualizarBaseFerias();
+  };
+
+  const reiniciarFerias = document.getElementById('reiniciarCalculoFerias');
+  if (reiniciarFerias) reiniciarFerias.onclick = function(){
+    try{
+      const tbody = document.querySelector('#tabelaRubricasFerias tbody');
+      if (tbody) tbody.innerHTML = '';
+  const defaultOrder = ['00001','00013','00591','82286','00053'];
+  defaultOrder.forEach(code => { const row = criarLinhaRubricaFerias(code, true); if (tbody) tbody.appendChild(row); });
+      if (typeof initMonetaryInputs === 'function') initMonetaryInputs();
+      if (typeof atualizarBaseFerias === 'function') atualizarBaseFerias();
+    }catch(e){console.error('Erro reiniciar ferias', e)}
+  };
+
+  // Calcula a base das férias somando os valores informados na tabela
+  function atualizarBaseFerias(){
+    try{
+      const tbody = document.querySelectorAll('#tabelaRubricasFerias tbody tr');
+      let soma = 0;
+      tbody.forEach(tr=>{ const v = parseMonetary(tr.querySelector('.rubrica-ferias-valor')?.value) || 0; soma += v; });
+      const el = document.getElementById('valorBaseFerias');
+      if (el) el.value = soma ? formatCurrency(soma) : formatCurrency(0);
+      return soma;
+    }catch(e){ return 0; }
+  }
+
+  // Atualiza a base sempre que houver mudança nas rubricas de Férias
+  document.addEventListener('input', function(e){
+    if (e.target && e.target.classList && (e.target.classList.contains('rubrica-ferias-valor') || e.target.classList.contains('rubrica-ferias-codigo'))) {
+      atualizarBaseFerias();
+    }
+  });
+
+  const btnCalFerias = document.getElementById('calcularFerias');
+  if (btnCalFerias) btnCalFerias.onclick = function(){
+    try{
+      const soma = atualizarBaseFerias();
+      const diasTotais = Number(document.getElementById('diasGozados1')?.value) + Number(document.getElementById('diasGozados2')?.value) + Number(document.getElementById('diasGozados3')?.value);
+      let resultado = `Memória de cálculo - Férias\nBase (soma das rubricas): R$ ${formatCurrency(soma)}\nDias gozados total: ${diasTotais}\n`;
+      // Exibe lista das rubricas usadas
+      document.querySelectorAll('#tabelaRubricasFerias tbody tr').forEach(tr=>{
+        const codigo = tr.querySelector('.rubrica-ferias-codigo')?.value || tr.querySelector('.rubrica-ferias-codigo-sel')?.value || '';
+        const denom = tr.querySelector('.rubrica-ferias-denom')?.value || '';
+        const val = parseMonetary(tr.querySelector('.rubrica-ferias-valor')?.value) || 0;
+        resultado += `${codigo} - ${denom} : R$ ${formatCurrency(val)}\n`;
+      });
+      document.getElementById('resultadoFerias').textContent = resultado;
+    }catch(e){ console.error('Erro calcular ferias', e); document.getElementById('resultadoFerias').textContent = 'Erro ao calcular férias.'; }
+  };
+
+  // on load: populate defaults if empty
+  try{
+    const tbodyFer = document.querySelector('#tabelaRubricasFerias tbody');
+    if (tbodyFer && tbodyFer.children.length === 0) {
+  const defaultOrder = ['00001','00013','00591','82286','00053'];
+  defaultOrder.forEach(code => { const row = criarLinhaRubricaFerias(code, true); tbodyFer.appendChild(row); });
+      initMonetaryInputs();
+      atualizarBaseFerias();
+    }
+  }catch(e){}
+}catch(e){console.error('Erro inicializando rubricas de ferias', e)}
+
 // PDF/XLS Acúmulo de Benefícios — exporta a memória de cálculo
 document.getElementById('btnAcumuloPDF').onclick = function() {
   baixarPDF("Acumulo_Beneficios", document.getElementById('acumuloMemoria').textContent);
