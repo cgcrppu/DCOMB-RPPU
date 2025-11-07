@@ -155,6 +155,16 @@ Layout em grade: colunas automáticas com largura mínima de 220px e espaçament
 }
 .period-quadro .period-title { margin-top: 0; }
 
+/* Espaçamento extra entre o cabeçalho da seção e o primeiro quadro de período aquisitivo */
+#calculoFeriasArea > .period-quadro:first-of-type {
+  margin-top: 24px !important;
+}
+/* Garante espaço entre a grade de entradas (grid) e o primeiro quadro de período
+   (mais robusto que margin-top no quadro quando há colapso de margens) */
+#calculoFeriasArea .grid {
+  margin-bottom: 18px !important;
+}
+
 /* Responsividade do grid */
 @media (max-width: 768px) {
   .grid {

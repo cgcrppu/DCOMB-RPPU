@@ -1979,7 +1979,13 @@ try{
       if(nenhumGozado){
         // Marca o período mais antigo como perdido no resumo
         const lostLabel = periodLabels[0] || '1';
-        resumoHTML += `Período ${escapeHtml(lostLabel)} perdido<br>`;
+        const diasDireito0 = Number(diasDireitoArr[0]) || 0;
+        // Se o período mais antigo tiver direito a 30 dias, mostramos a mensagem formatada (vermelho/negrito)
+        if (diasDireito0 === 30) {
+          resumoHTML += `Período ${escapeHtml(lostLabel)}: <span style="color:#ff3b30;font-weight:700">Período total Perdido</span><br>`;
+        } else {
+          resumoHTML += `Período ${escapeHtml(lostLabel)} perdido<br>`;
+        }
       }
 
       for(const idx of indicesParaCalcular){
@@ -1988,6 +1994,23 @@ try{
         const diasDireito = Number(diasDireitoArr[idx]) || 0;
         const diasGozados = Number(diasGozadosArr[idx]) || 0;
 
+        // Situação especial para o período mais antigo (idx === 0) quando direito = 30:
+        // não contabilizamos valores deste período no total a pagar, mesmo que parcialmente gozado.
+        if (idx === 0 && Number(diasDireito) === 30) {
+          if (Number(diasGozados) === 30) {
+            resumoHTML += `Período ${escapeHtml(periodLabel)}: <strong>Período Utilizado</strong><br>`;
+          } else if (Number(diasGozados) === 0) {
+            resumoHTML += `Período ${escapeHtml(periodLabel)}: <span style="color:#ff3b30;font-weight:700">Período total Perdido</span><br>`;
+          } else {
+            const lost = Number(diasDireito) - Number(diasGozados);
+            const lostStr = Number.isInteger(lost) ? String(lost) : String(lost);
+            resumoHTML += `Período ${escapeHtml(periodLabel)}: <span style="color:#ff3b30;font-weight:700">Período de ${escapeHtml(lostStr)} dias perdidos</span><br>`;
+          }
+          // pula este período sem somar valores (não inclui proporcional nem 1/3)
+          continue;
+        }
+
+        // Para os demais casos, contabiliza-se normalmente
         const diasRestantes = Math.max(0, diasDireito - diasGozados);
         const proporcional = diaria * diasRestantes;
         const recebeu = recebeuArr[idx] || 'Não';
@@ -2007,7 +2030,17 @@ try{
         const propHtml = (proporcional < 0) ? `<span style="color:#ff3b30;font-weight:700">${escapeHtml(propFormatted)}</span>` : escapeHtml(propFormatted);
         const tercHtml = (terc < 0) ? `<span style="color:#ff3b30;font-weight:700">${escapeHtml(tercFormatted)}</span>` : escapeHtml(tercFormatted);
 
-        resumoHTML += `Período ${escapeHtml(periodLabel)}: Direito ${escapeHtml(diasDireito)} dias — Gozados ${escapeHtml(diasGozados)} dias — Restantes ${escapeHtml(diasRestantes)} dias — Valor proporcional: ${propHtml} — 1/3 ajuste: ${tercHtml}<br>`;
+        // Exibição: se for o período mais antigo parcialmente gozado, mostramos também o aviso em vermelho
+        let lineHtml = '';
+        if (idx === 0 && Number(diasDireito) === 30 && Number(diasGozados) > 0 && Number(diasGozados) < 30) {
+          const lost = Number(diasDireito) - Number(diasGozados);
+          const lostStr = Number.isInteger(lost) ? String(lost) : String(lost);
+          lineHtml = `Período ${escapeHtml(periodLabel)}: <span style="color:#ff3b30;font-weight:700">Período de ${escapeHtml(lostStr)} dias perdidos</span> — Direito ${escapeHtml(diasDireito)} dias — Gozados ${escapeHtml(diasGozados)} dias — Restantes ${escapeHtml(diasRestantes)} dias — Valor proporcional: ${propHtml} — 1/3 ajuste: ${tercHtml}<br>`;
+        } else {
+          lineHtml = `Período ${escapeHtml(periodLabel)}: Direito ${escapeHtml(diasDireito)} dias — Gozados ${escapeHtml(diasGozados)} dias — Restantes ${escapeHtml(diasRestantes)} dias — Valor proporcional: ${propHtml} — 1/3 ajuste: ${tercHtml}<br>`;
+        }
+
+        resumoHTML += lineHtml;
       }
 
       const totalFormatted = `R$ ${formatCurrency(totalPagar)}`;
