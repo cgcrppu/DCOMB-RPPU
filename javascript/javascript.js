@@ -1919,18 +1919,57 @@ try{
   const btnCalFerias = document.getElementById('calcularFerias');
   if (btnCalFerias) btnCalFerias.onclick = function(){
     try{
-      const soma = atualizarBaseFerias();
-      const diasTotais = Number(document.getElementById('diasGozados1')?.value) + Number(document.getElementById('diasGozados2')?.value) + Number(document.getElementById('diasGozados3')?.value);
-      let resultado = `Memória de cálculo - Férias\nBase (soma das rubricas): R$ ${formatCurrency(soma)}\nDias gozados total: ${diasTotais}\n`;
-      // Exibe lista das rubricas usadas
-      document.querySelectorAll('#tabelaRubricasFerias tbody tr').forEach(tr=>{
-        const codigo = tr.querySelector('.rubrica-ferias-codigo')?.value || tr.querySelector('.rubrica-ferias-codigo-sel')?.value || '';
-        const denom = tr.querySelector('.rubrica-ferias-denom')?.value || '';
-        const val = parseMonetary(tr.querySelector('.rubrica-ferias-valor')?.value) || 0;
-        resultado += `${codigo} - ${denom} : R$ ${formatCurrency(val)}\n`;
-      });
-      document.getElementById('resultadoFerias').textContent = resultado;
-    }catch(e){ console.error('Erro calcular ferias', e); document.getElementById('resultadoFerias').textContent = 'Erro ao calcular férias.'; }
+      // Exporta informações básicas de Férias: nome, datas e resultado exibido (para uso futuro)
+      const header = ["Nome do Servidor","Data Ingresso Serviço Público","Data Aposentadoria","Resultado Férias"];
+      const nome = (document.getElementById('nomeServidorFerias')?.value) || '';
+      const ingresso = (document.getElementById('dataIngressoServico')?.value) || '';
+      const dataApos = (document.getElementById('dataAposentadoriaFerias')?.value) || '';
+
+      // formata datas DD/MM/AAAA para exibição no resultado
+      const fmtBR = (d)=>{
+        if(!d) return '';
+        const parts = (d+'').split('-');
+        if(parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        return d;
+      };
+
+      const valorBase = parseMonetary(document.getElementById('valorBaseFerias')?.value) || 0;
+      const diaria = valorBase / 30;
+
+      let resumo = `Cálculo de Férias\nNome: ${nome}\nData ingresso: ${fmtBR(ingresso)}\nData aposentadoria: ${fmtBR(dataApos)}\n\n`;
+      let totalPagar = 0;
+
+      for(let i=1;i<=3;i++){
+        const periodLabel = (document.getElementById(`periodoAquisitivo${i}LabelValue`)?.textContent) || '';
+        const diasRaw = (document.getElementById(`periodoAquisitivo${i}`)?.value) || '';
+        let diasDireito = 0;
+        const m = (diasRaw+'').toString().match(/([\d\.\,]+)/);
+        if(m) diasDireito = parseFloat(m[1].replace(',','.')) || 0;
+
+        const gozadosRaw = (document.getElementById(`diasGozados${i}`)?.value) || '';
+        let diasGozados = parseFloat((gozadosRaw+'').replace(',','.')) || 0;
+        if(isNaN(diasGozados)) diasGozados = 0;
+        if(diasGozados < 0) diasGozados = 0;
+        if(diasGozados > diasDireito) diasGozados = diasDireito;
+
+        const diasRestantes = Math.max(0, diasDireito - diasGozados);
+        const proporcional = diaria * diasRestantes;
+        const recebeu = (document.getElementById(`recebeUmTerco${i}`)?.value) || 'Não';
+        const terc = (recebeu === 'Não') ? (proporcional / 3) : 0;
+        totalPagar += proporcional + terc;
+
+        resumo += `Período ${periodLabel || i}: Direito ${diasDireito} dias — Gozados ${diasGozados} dias — Restantes ${diasRestantes} dias — Valor proporcional: R$ ${formatCurrency(proporcional)} — 1/3 a pagar: R$ ${formatCurrency(terc)}\n`;
+      }
+
+      resumo += `\nTotal a pagar: R$ ${formatCurrency(totalPagar)}`;
+      document.getElementById('resultadoFerias').textContent = resumo;
+
+      // Também monta a linha para eventual exportação
+      const resultado = resumo;
+      const row = [nome, ingresso, dataApos, resultado];
+
+      // (no futuro podemos usar header/row para gerar XLS/PDF)
+    }catch(e){ console.error('Erro ao calcular Férias:', e); document.getElementById('resultadoFerias').textContent = 'Erro ao calcular Férias. Veja console.'; }
   };
 
   // on load: populate defaults if empty
