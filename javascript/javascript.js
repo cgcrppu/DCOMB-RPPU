@@ -401,6 +401,49 @@ function buscarVencimentoBasico(cargo, classe, padrao, jornada) {
   if(!item) return "";
   return (jornada==="40h"?item.h40:item.h30);
 }
+// Aplica imediatamente a regra que força, para cada código em codes[] (ex: ['00136','00951']),
+// que apenas 1 linha mantenha proporcionalidade e as demais fiquem Ativo=0 e Ajuste=-ValorPadrão.
+// Usamos isso para refletir a mudança assim que o usuário inserir/selecionar a segunda rubrica.
+function aplicarRegraAuximediata(codes) {
+  try {
+    codes.forEach(codeToHandle => {
+      try {
+        const auxRows = [];
+        document.querySelectorAll('#tabelaRubricas tbody tr').forEach(tr => {
+          try {
+            const codigo = (tr.querySelector('.rubrica-codigo')?.value) || (tr.querySelector('.rubrica-codigo-sel')?.value) || '';
+            if (codigo === codeToHandle) auxRows.push(tr);
+          } catch(e) {}
+        });
+        if (auxRows.length < 2) return;
+        // escolhe o primeiro não-manual como keeper, senão o primeiro
+        let keeper = null;
+        for (let i = 0; i < auxRows.length; i++) {
+          const tr = auxRows[i];
+          if (!tr.dataset || tr.dataset.valoresManuais !== '1') { keeper = tr; break; }
+        }
+        if (!keeper) keeper = auxRows[0];
+        auxRows.forEach(tr => {
+          try {
+            if (tr === keeper) return;
+            const inpValorPad = tr.querySelector('.rubrica-valorpadrao');
+            const inpAt = tr.querySelector('.rubrica-ativo');
+            const inpIn = tr.querySelector('.rubrica-inativo');
+            const inpAjuste = tr.querySelector('.rubrica-ajuste');
+            const valorPad = parseMonetary(inpValorPad?.value) || 0;
+            if (inpAt) inpAt.value = formatCurrency(0);
+            if (inpIn) inpIn.value = formatCurrency(0);
+            if (inpAjuste) {
+              const forced = valorPad === 0 ? 0 : -Math.abs(valorPad);
+              inpAjuste.value = formatCurrency(forced);
+              inpAjuste.style.color = (forced < 0) ? 'red' : '';
+            }
+          } catch(e) {}
+        });
+      } catch(e) {}
+    });
+  } catch(e) {}
+}
 // Cria dinamicamente uma linha na tabela de rubricas com inputs/selects
 // valorCodigo (opcional): pré-preenche o código da rubrica
 function criarLinhaRubrica(valorCodigo='') {
@@ -465,6 +508,8 @@ function criarLinhaRubrica(valorCodigo='') {
       input.value = sel.value;
       atualizarRubricaAuto();
     }
+    // Aplica regra imediata caso seja Aux. Alimentação ou Aux. Transporte
+    try { aplicarRegraAuximediata(['00136','00951']); } catch(e) {}
   });
   // Quando o usuário digitar no input de código, ajusta o select se reconhecido
   input.addEventListener('input', function() {
@@ -474,6 +519,7 @@ function criarLinhaRubrica(valorCodigo='') {
       sel.value = "OUTRA";
     }
     atualizarRubricaAuto();
+    try { aplicarRegraAuximediata(['00136','00951']); } catch(e) {}
   });
 
   // Quando o select "Aplica em" for alterado, recalcula as proporções para a linha
@@ -502,6 +548,7 @@ function criarLinhaRubrica(valorCodigo='') {
   if (inpValorPadraoLinha) {
     inpValorPadraoLinha.addEventListener('input', function(e){
       try{ if (e && e.isTrusted) tr.dataset.valorPadraoManual = '1'; } catch(err){}
+      try { aplicarRegraAuximediata(['00136','00951']); } catch(e) {}
     });
   }
 
@@ -677,6 +724,8 @@ document.getElementById('adicionarRubrica').onclick = function() {
   if (typeof atualizarProporcoesRubricas === 'function') atualizarProporcoesRubricas();
   // Atualiza o Abono caso a nova rubrica influencie a base
   if (typeof atualizarValorPadraoAbono === 'function') atualizarValorPadraoAbono();
+  // Garante aplicação imediata da regra para Aux. Alimentação/Transporte
+  try { aplicarRegraAuximediata(['00136','00951']); } catch(e) {}
 };
 // Botão Reiniciar: remove flags manuais e recalcula tudo (restaura comportamento automático)
 const reiniciarBtn = document.getElementById('reiniciarCalculo');
@@ -1119,6 +1168,53 @@ function atualizarProporcoesRubricas() {
     // Se a linha estava marcada como recém-criada, removemos a marca após o primeiro cálculo
     if (tr.dataset.nova) delete tr.dataset.nova;
   });
+    // Regra adicional: para Aux. Transporte (00951) e Aux. Alimentação (00136),
+    // aplica proporcionalidade somente à PRIMEIRA lançada (keeper) de cada tipo e as demais
+    // ficam com Ativo = 0 e Ajuste = -ValorPadrão (ou 0 se ValorPadrão = 0).
+    // Preferimos não alterar linhas com valores manuais (dataset.valoresManuais === '1').
+    try {
+      ['00951','00136'].forEach(codeToHandle => {
+        try {
+          const auxRows = [];
+          document.querySelectorAll('#tabelaRubricas tbody tr').forEach(tr => {
+            try {
+              const codigo = (tr.querySelector('.rubrica-codigo')?.value) || (tr.querySelector('.rubrica-codigo-sel')?.value) || '';
+              if (codigo === codeToHandle) auxRows.push(tr);
+            } catch(e) {}
+          });
+          if (auxRows.length >= 2) {
+            // escolhe a PRIMEIRA linha não manual (preserva a proporcionalidade nela);
+            // se todas forem manuais, escolhe a primeira geral.
+            let keeper = null;
+            for (let i = 0; i < auxRows.length; i++) {
+              const tr = auxRows[i];
+              if (!tr.dataset || tr.dataset.valoresManuais !== '1') { keeper = tr; break; }
+            }
+            if (!keeper) keeper = auxRows[0];
+
+            // Para cada aux deste tipo que NÃO for o keeper, forçamos Ativo = 0 e Ajuste = -ValorPadrão
+            auxRows.forEach(tr => {
+              try {
+                if (tr === keeper) return; // mantém os valores calculados para o keeper
+                const inpValorPad = tr.querySelector('.rubrica-valorpadrao');
+                const inpAt = tr.querySelector('.rubrica-ativo');
+                const inpIn = tr.querySelector('.rubrica-inativo');
+                const inpAjuste = tr.querySelector('.rubrica-ajuste');
+                const valorPad = parseMonetary(inpValorPad?.value) || 0;
+                if (inpAt) inpAt.value = formatCurrency(0);
+                if (inpIn) inpIn.value = formatCurrency(0);
+                if (inpAjuste) {
+                  const forced = valorPad === 0 ? 0 : -Math.abs(valorPad);
+                  inpAjuste.value = formatCurrency(forced);
+                  inpAjuste.style.color = (forced < 0) ? 'red' : '';
+                }
+              } catch(e) {}
+            });
+          }
+        } catch(e) {}
+      });
+    } catch(e) { /* não interrompe a rotina se falhar */ }
+
   // Após recalcular proporções, atualiza o valor-padrão do Abono
   if (typeof atualizarValorPadraoAbono === 'function') atualizarValorPadraoAbono();
   // Recalcula o Ajuste especificamente para a rubrica Abono (82273)
