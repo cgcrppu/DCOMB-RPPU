@@ -1837,6 +1837,78 @@ try{
     }catch(e){ return 0; }
   }
 
+  // Atualiza os rótulos dos Períodos Aquisitivos (3 quadros) com base na data de ingresso e data de aposentadoria
+  // Regras:
+  // - Se a data de aposentadoria ocorrer no mesmo mês do ingresso e dia >= dia de ingresso, ou em mês posterior,
+  //   considera-se que o aniversários foi atingido no ano da aposentadoria -> primeiro quadro começa em (anoApos - 2)
+  // - Caso contrário (aposentadoria antes do aniversário), o primeiro quadro começa em (anoApos - 3)
+  function atualizarPeriodoAquisitivoLabels(){
+    try{
+      const ing = document.getElementById('dataIngressoServico')?.value;
+      const apos = document.getElementById('dataAposentadoriaFerias')?.value;
+      const spans = [
+        document.getElementById('periodoAquisitivo1LabelValue'),
+        document.getElementById('periodoAquisitivo2LabelValue'),
+        document.getElementById('periodoAquisitivo3LabelValue')
+      ];
+      const inputsDias = [
+        document.getElementById('periodoAquisitivo1'),
+        document.getElementById('periodoAquisitivo2'),
+        document.getElementById('periodoAquisitivo3')
+      ];
+      if(!ing || !apos){ spans.forEach(s=>s && (s.textContent='')); return; }
+      const [ingY,ingM,ingD] = ing.split('-').map(Number);
+      const [aposY,aposM,aposD] = apos.split('-').map(Number);
+      if([ingY,ingM,ingD].some(v=>isNaN(v)) || [aposY,aposM,aposD].some(v=>isNaN(v))){ spans.forEach(s=>s && (s.textContent='')); return; }
+      const aniversarioPassou = (aposM > ingM) || (aposM === ingM && aposD >= ingD);
+      const primeiroInicio = aniversarioPassou ? (aposY - 2) : (aposY - 3);
+      for(let i=0;i<3;i++){
+        const start = primeiroInicio + i;
+        const end = start + 1;
+        if(spans[i]) spans[i].textContent = `${start}/${end}`;
+
+        // Calcula os dias a que possui direito neste período
+        // Regra: para cada ocorrência do dia 15 dentro do período aquisitivo, conta-se 2,5 dias.
+        // Limite máximo por período = 30 dias.
+        try{
+          const ingDate = new Date(ingY, ingM-1, ingD);
+          const aposDate = new Date(aposY, aposM-1, aposD);
+          const periodStart = new Date(start, ingM-1, ingD);
+          const periodEnd = new Date(end, ingM-1, ingD); // NÃO inclusivo
+
+          // Se aposentadoria antes do início do período, não há direito
+          if(aposDate <= periodStart){ if(inputsDias[i]) inputsDias[i].value = '0'; continue; }
+
+          // Cursor para o dia 15 do mês: comece no mês do periodStart
+          let cursor = new Date(periodStart.getFullYear(), periodStart.getMonth(), 15);
+          // Avança até que o cursor esteja dentro do período (>= periodStart)
+          while(cursor < periodStart){ cursor.setMonth(cursor.getMonth() + 1); }
+
+          let count15 = 0;
+          while(cursor < periodEnd && cursor <= aposDate){
+            // Conta esta ocorrência
+            count15 += 1;
+            // Próximo mês
+            cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 15);
+          }
+
+          let diasDireito = count15 * 2.5;
+          if(diasDireito > 30) diasDireito = 30;
+          // mostra com .5 quando necessário
+          if(inputsDias[i]) inputsDias[i].value = (Number.isInteger(diasDireito) ? diasDireito.toString() : diasDireito.toString());
+        } catch(e){ if(inputsDias[i]) inputsDias[i].value = ''; }
+      }
+    }catch(e){ console.error('Erro atualizarPeriodoAquisitivoLabels', e); }
+  }
+
+  // Registra listeners para atualizar dinamicamente ao alterar as datas
+  const elIngresso = document.getElementById('dataIngressoServico');
+  const elApos = document.getElementById('dataAposentadoriaFerias');
+  if(elIngresso){ elIngresso.addEventListener('change', atualizarPeriodoAquisitivoLabels); elIngresso.addEventListener('input', atualizarPeriodoAquisitivoLabels); }
+  if(elApos){ elApos.addEventListener('change', atualizarPeriodoAquisitivoLabels); elApos.addEventListener('input', atualizarPeriodoAquisitivoLabels); }
+  // Chamada inicial para preencher os rótulos caso já haja datas
+  setTimeout(atualizarPeriodoAquisitivoLabels, 50);
+
   // Atualiza a base sempre que houver mudança nas rubricas de Férias
   document.addEventListener('input', function(e){
     if (e.target && e.target.classList && (e.target.classList.contains('rubrica-ferias-valor') || e.target.classList.contains('rubrica-ferias-codigo'))) {

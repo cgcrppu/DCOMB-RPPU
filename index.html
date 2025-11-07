@@ -144,6 +144,17 @@ Layout em grade: colunas automáticas com largura mínima de 220px e espaçament
 }
 .period-row label { display: block; margin-bottom: 6px; }
 
+/* Quadro para cada Período Aquisitivo: separa visualmente cada grupo com borda, padding e leve sombra */
+.period-quadro {
+  border: 1px solid #d6dbe0;
+  background: #fff;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 10px rgba(20,30,40,0.04);
+}
+.period-quadro .period-title { margin-top: 0; }
+
 /* Responsividade do grid */
 @media (max-width: 768px) {
   .grid {
@@ -672,10 +683,11 @@ body {
     </div>
     <!-- valorBaseFerias moved below the Rubricas table -->
   </div>
-  <div class="period-title" style="text-align:center; font-weight:bold; margin-bottom:6px;">Período Aquisitivo: <span id="periodoAquisitivo1LabelValue"></span></div>
-  <div class="period-row">
+  <div class="period-quadro">
+    <div class="period-title" style="text-align:center; font-weight:bold; margin-bottom:6px;">Período Aquisitivo: <span id="periodoAquisitivo1LabelValue"></span></div>
+    <div class="period-row">
       <div>
-        <label id="labelPeriodoAquisitivo1">Período
+  <label id="labelPeriodoAquisitivo1">Dias que possui direito
           <span class="tooltip">?
             <span class="tooltiptext">Quantos dias o servidor tinha direito a utilizar nesse período aquisitivio</span>
           </span>
@@ -702,11 +714,13 @@ body {
         </select>
       </div>
     </div>
+  </div>
 
-  <div class="period-title" style="text-align:center; font-weight:bold; margin-bottom:6px;">Período Aquisitivo: <span id="periodoAquisitivo2LabelValue"></span></div>
-  <div class="period-row">
+  <div class="period-quadro">
+    <div class="period-title" style="text-align:center; font-weight:bold; margin-bottom:6px;">Período Aquisitivo: <span id="periodoAquisitivo2LabelValue"></span></div>
+    <div class="period-row">
       <div>
-        <label id="labelPeriodoAquisitivo2">Período
+  <label id="labelPeriodoAquisitivo2">Dias que possui direito
           <span class="tooltip">?
             <span class="tooltiptext">Quantos dias o servidor tinha direito a utilizar nesse período aquisitivio</span>
           </span>
@@ -733,11 +747,13 @@ body {
         </select>
       </div>
     </div>
+  </div>
 
-  <div class="period-title" style="text-align:center; font-weight:bold; margin-bottom:6px;">Período Aquisitivo: <span id="periodoAquisitivo3LabelValue"></span></div>
-  <div class="period-row">
+  <div class="period-quadro">
+    <div class="period-title" style="text-align:center; font-weight:bold; margin-bottom:6px;">Período Aquisitivo: <span id="periodoAquisitivo3LabelValue"></span></div>
+    <div class="period-row">
       <div>
-        <label id="labelPeriodoAquisitivo3">Período
+  <label id="labelPeriodoAquisitivo3">Dias que possui direito
           <span class="tooltip">?
             <span class="tooltiptext">Quantos dias o servidor tinha direito a utilizar nesse período aquisitivio</span>
           </span>
@@ -763,7 +779,8 @@ body {
           <option value="Sim">Sim</option>
         </select>
       </div>
-      </div>
+    </div>
+  </div>
   <h3 style="margin-top:32px;">Rubricas / Férias</h3>
   <div class="table-container">
     <table id="tabelaRubricasFerias" style="width:100%;border-collapse:collapse;">
