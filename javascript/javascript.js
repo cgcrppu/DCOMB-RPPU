@@ -1936,7 +1936,18 @@ try{
       const valorBase = parseMonetary(document.getElementById('valorBaseFerias')?.value) || 0;
       const diaria = valorBase / 30;
 
-      let resumo = `Cálculo de Férias\nNome: ${nome}\nData ingresso: ${fmtBR(ingresso)}\nData aposentadoria: ${fmtBR(dataApos)}\n\n`;
+      // helper to escape HTML when injecting into innerHTML
+      const escapeHtml = (str) => {
+        if(str === null || str === undefined) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      };
+
+      let resumoHTML = `<strong>Cálculo de Férias</strong><br>Nome: ${escapeHtml(nome)}<br>Data ingresso: ${escapeHtml(fmtBR(ingresso))}<br>Data aposentadoria: ${escapeHtml(fmtBR(dataApos))}<br><br>`;
       let totalPagar = 0;
 
       for(let i=1;i<=3;i++){
@@ -1955,17 +1966,35 @@ try{
         const diasRestantes = Math.max(0, diasDireito - diasGozados);
         const proporcional = diaria * diasRestantes;
         const recebeu = (document.getElementById(`recebeUmTerco${i}`)?.value) || 'Não';
-        const terc = (recebeu === 'Não') ? (proporcional / 3) : 0;
+        let terc = 0;
+        if(recebeu === 'Não'){
+          // não recebeu 1/3: calcula 1/3 sobre o proporcional (dias restantes)
+          terc = proporcional / 3;
+        } else {
+          // marcou como recebido: considera-se que recebeu o 1/3 sobre a base total (valorBase/3)
+          const expectedOneThird = (diaria * diasDireito) / 3; // o que era devido para os dias de direito
+          const receivedAmount = (valorBase / 3) || 0; // valor efetivamente recebido (base * 1/3)
+          // ajuste: expected - received (pode ser negativo -> exibe como negativo quando houve pagamento maior que o devido)
+          terc = expectedOneThird - receivedAmount;
+        }
         totalPagar += proporcional + terc;
 
-        resumo += `Período ${periodLabel || i}: Direito ${diasDireito} dias — Gozados ${diasGozados} dias — Restantes ${diasRestantes} dias — Valor proporcional: R$ ${formatCurrency(proporcional)} — 1/3 a pagar: R$ ${formatCurrency(terc)}\n`;
+        // formata valores e destaca em vermelho/negrito quando negativos
+        const propFormatted = `R$ ${formatCurrency(proporcional)}`;
+        const tercFormatted = `R$ ${formatCurrency(terc)}`;
+        const propHtml = (proporcional < 0) ? `<span style="color:#ff3b30;font-weight:700">${escapeHtml(propFormatted)}</span>` : escapeHtml(propFormatted);
+        const tercHtml = (terc < 0) ? `<span style="color:#ff3b30;font-weight:700">${escapeHtml(tercFormatted)}</span>` : escapeHtml(tercFormatted);
+
+        resumoHTML += `Período ${escapeHtml(periodLabel || i)}: Direito ${escapeHtml(diasDireito)} dias — Gozados ${escapeHtml(diasGozados)} dias — Restantes ${escapeHtml(diasRestantes)} dias — Valor proporcional: ${propHtml} — 1/3 ajuste: ${tercHtml}<br>`;
       }
 
-      resumo += `\nTotal a pagar: R$ ${formatCurrency(totalPagar)}`;
-      document.getElementById('resultadoFerias').textContent = resumo;
+      const totalFormatted = `R$ ${formatCurrency(totalPagar)}`;
+      const totalHtml = (totalPagar < 0) ? `<span style="color:#ff3b30;font-weight:700">${escapeHtml(totalFormatted)}</span>` : escapeHtml(totalFormatted);
+      resumoHTML += `<br><strong>Total a pagar:</strong> ${totalHtml}`;
+      document.getElementById('resultadoFerias').innerHTML = resumoHTML;
 
-      // Também monta a linha para eventual exportação
-      const resultado = resumo;
+  // Também monta a linha para eventual exportação (texto sem formatação)
+  const resultado = document.getElementById('resultadoFerias').innerText || '';
       const row = [nome, ingresso, dataApos, resultado];
 
       // (no futuro podemos usar header/row para gerar XLS/PDF)
