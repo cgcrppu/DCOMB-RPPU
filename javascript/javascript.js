@@ -1950,42 +1950,64 @@ try{
       let resumoHTML = `<strong>Cálculo de Férias</strong><br>Nome: ${escapeHtml(nome)}<br>Data ingresso: ${escapeHtml(fmtBR(ingresso))}<br>Data aposentadoria: ${escapeHtml(fmtBR(dataApos))}<br><br>`;
       let totalPagar = 0;
 
+      // Carrega informações dos 3 períodos em arrays para avaliação prévia
+      const periodLabels = [];
+      const diasDireitoArr = [];
+      const diasGozadosArr = [];
+      const recebeuArr = [];
       for(let i=1;i<=3;i++){
-        const periodLabel = (document.getElementById(`periodoAquisitivo${i}LabelValue`)?.textContent) || '';
+        periodLabels.push((document.getElementById(`periodoAquisitivo${i}LabelValue`)?.textContent) || '');
         const diasRaw = (document.getElementById(`periodoAquisitivo${i}`)?.value) || '';
-        let diasDireito = 0;
         const m = (diasRaw+'').toString().match(/([\d\.\,]+)/);
-        if(m) diasDireito = parseFloat(m[1].replace(',','.')) || 0;
+        const diasDireito = m ? (parseFloat(m[1].replace(',','.')) || 0) : 0;
+        diasDireitoArr.push(diasDireito);
 
         const gozadosRaw = (document.getElementById(`diasGozados${i}`)?.value) || '';
-        let diasGozados = parseFloat((gozadosRaw+'').replace(',','.')) || 0;
-        if(isNaN(diasGozados)) diasGozados = 0;
-        if(diasGozados < 0) diasGozados = 0;
-        if(diasGozados > diasDireito) diasGozados = diasDireito;
+        let diasG = parseFloat((gozadosRaw+'').replace(',','.')) || 0;
+        if(isNaN(diasG)) diasG = 0;
+        if(diasG < 0) diasG = 0;
+        if(diasG > diasDireito) diasG = diasDireito;
+        diasGozadosArr.push(diasG);
+
+        recebeuArr.push((document.getElementById(`recebeUmTerco${i}`)?.value) || 'Não');
+      }
+
+      // Se o usuário não gozou dias em nenhum dos 3 períodos, ignorar o mais antigo e calcular apenas os 2 últimos
+      const nenhumGozado = diasGozadosArr.every(v => Number(v) === 0);
+      const indicesParaCalcular = nenhumGozado ? [1,2] : [0,1,2];
+
+      if(nenhumGozado){
+        // Marca o período mais antigo como perdido no resumo
+        const lostLabel = periodLabels[0] || '1';
+        resumoHTML += `Período ${escapeHtml(lostLabel)} perdido<br>`;
+      }
+
+      for(const idx of indicesParaCalcular){
+        const iDisplay = idx + 1;
+        const periodLabel = periodLabels[idx] || iDisplay;
+        const diasDireito = Number(diasDireitoArr[idx]) || 0;
+        const diasGozados = Number(diasGozadosArr[idx]) || 0;
 
         const diasRestantes = Math.max(0, diasDireito - diasGozados);
         const proporcional = diaria * diasRestantes;
-        const recebeu = (document.getElementById(`recebeUmTerco${i}`)?.value) || 'Não';
+        const recebeu = recebeuArr[idx] || 'Não';
         let terc = 0;
         if(recebeu === 'Não'){
-          // não recebeu 1/3: calcula 1/3 sobre o proporcional (dias restantes)
           terc = proporcional / 3;
         } else {
-          // marcou como recebido: considera-se que recebeu o 1/3 sobre a base total (valorBase/3)
-          const expectedOneThird = (diaria * diasDireito) / 3; // o que era devido para os dias de direito
-          const receivedAmount = (valorBase / 3) || 0; // valor efetivamente recebido (base * 1/3)
-          // ajuste: expected - received (pode ser negativo -> exibe como negativo quando houve pagamento maior que o devido)
+          // recebeu: consideramos que recebeu o valor da base inteira * 1/3
+          const expectedOneThird = (diaria * diasDireito) / 3;
+          const receivedAmount = (valorBase / 3) || 0;
           terc = expectedOneThird - receivedAmount;
         }
         totalPagar += proporcional + terc;
 
-        // formata valores e destaca em vermelho/negrito quando negativos
         const propFormatted = `R$ ${formatCurrency(proporcional)}`;
         const tercFormatted = `R$ ${formatCurrency(terc)}`;
         const propHtml = (proporcional < 0) ? `<span style="color:#ff3b30;font-weight:700">${escapeHtml(propFormatted)}</span>` : escapeHtml(propFormatted);
         const tercHtml = (terc < 0) ? `<span style="color:#ff3b30;font-weight:700">${escapeHtml(tercFormatted)}</span>` : escapeHtml(tercFormatted);
 
-        resumoHTML += `Período ${escapeHtml(periodLabel || i)}: Direito ${escapeHtml(diasDireito)} dias — Gozados ${escapeHtml(diasGozados)} dias — Restantes ${escapeHtml(diasRestantes)} dias — Valor proporcional: ${propHtml} — 1/3 ajuste: ${tercHtml}<br>`;
+        resumoHTML += `Período ${escapeHtml(periodLabel)}: Direito ${escapeHtml(diasDireito)} dias — Gozados ${escapeHtml(diasGozados)} dias — Restantes ${escapeHtml(diasRestantes)} dias — Valor proporcional: ${propHtml} — 1/3 ajuste: ${tercHtml}<br>`;
       }
 
       const totalFormatted = `R$ ${formatCurrency(totalPagar)}`;
